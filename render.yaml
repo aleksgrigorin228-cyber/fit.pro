@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: fit-pro
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PAYMENT_LINK_STARTER
+        sync: false
+      - key: PAYMENT_LINK_PRO
+        sync: false
+      - key: PAYMENT_LINK_ELITE
+        sync: false
