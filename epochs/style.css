@@ -148,3 +148,30 @@ body:after{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;opac
 }
 @media(max-width:430px){.topline{align-items:center}.brand{gap:7px}.brand h1{font-size:15px}.brand .eyebrow{font-size:7px}.top-actions .btn{font-size:7px;padding:6px}.map-headline h2{font-size:14px}.season{font-size:12px}.sim-heading h3{font-size:14px}.sim-heading p{font-size:9px}.world-sim .btn{font-size:8px;padding:7px 8px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+
+/* 0.7.1 — reduced UI noise, richer moving landscape */
+.map-legend,.map-note{display:none}
+.map-wrap{isolation:isolate}
+.map-grid{z-index:2}
+.map-wrap:before{z-index:3}
+.map-wrap:after{z-index:3}
+.sim-canvas{z-index:4}
+.cinema-canvas{position:absolute;inset:0;z-index:5;pointer-events:none;mix-blend-mode:screen;opacity:.95}
+.tile .terrain-icon{opacity:0!important;transform:scale(.7);transition:opacity .4s,transform .5s}
+.tile .tile-name{opacity:0!important;transition:opacity .35s;letter-spacing:.16em}
+.tile:hover .tile-name,.tile.selected .tile-name,.tile.sim-target .tile-name{opacity:.92!important}
+.tile:hover .terrain-icon,.tile.selected .terrain-icon,.tile.sim-target .terrain-icon{opacity:.16!important;transform:scale(1)}
+.map-headline .pill{box-shadow:0 0 18px #c7ad7040}
+.world-sim{animation:panelRise .9s cubic-bezier(.18,.76,.24,1) both}
+@keyframes panelRise{from{opacity:0;transform:translateY(13px)}to{opacity:1;transform:translateY(0)}}
+.event-cover.open .event-card{animation:eventMaterialize .75s cubic-bezier(.16,.8,.25,1) both}
+@keyframes eventMaterialize{0%{opacity:0;transform:translateY(24px) scale(.94);filter:blur(12px)}65%{opacity:1;filter:blur(0)}100%{transform:translateY(0) scale(1)}}
+.event-cover.open .event-mark{animation:eventSigil 1.1s ease-out both}
+@keyframes eventSigil{0%{transform:scale(.45) rotate(-20deg);opacity:0;filter:blur(8px)}70%{transform:scale(1.18) rotate(5deg)}100%{transform:scale(1);opacity:1;filter:blur(0)}}
+.event-cover.open .event-card h2{animation:eventText .7s .13s both}
+.event-cover.open .event-card p{animation:eventText .8s .22s both}
+@keyframes eventText{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+.toast.show{animation:toastArrival .32s cubic-bezier(.2,.8,.2,1) both}
+@keyframes toastArrival{from{opacity:0;transform:translate(-50%,14px) scale(.96)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.cinema-canvas{opacity:.45}.world-sim{animation:none}.event-cover.open .event-card,.event-cover.open .event-mark,.event-cover.open .event-card h2,.event-cover.open .event-card p{animation:none}}
