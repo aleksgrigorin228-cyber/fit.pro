@@ -57,3 +57,94 @@
 /* Realm economy and policy controls — 0.6.0 */
 .sim-economy{margin:12px 0;padding:12px;background:#101914;border:1px solid #d4b46a30;border-radius:11px}.sim-economy-head{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px}.sim-economy-head strong{color:#ead9ae}.sim-economy-head span{font-size:9px;color:#aab99f}.sim-economy-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:10px 0}.sim-economy-stats>div{font-size:9px;color:#9eac9e;background:#1b2820;padding:8px;border-radius:7px}.sim-economy-stats b{display:block;color:#f0dfb2;font-size:12px;margin-top:4px}.sim-policy{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0}.sim-policy span{font-size:9px;color:#b6c1b2;margin-right:4px}.sim-policy .btn{font-size:9px;padding:6px 9px}.sim-policy .btn.active{border-color:#d8bd78;color:#f1d58b;background:#66552a44}.sim-economy .sim-actions .btn{font-size:9px;padding:7px 10px}
 @media(max-width:560px){.sim-economy-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.sim-economy-head{align-items:flex-start;flex-direction:column}}
+
+
+/* EPOHI 0.7.0 — CINEMATIC WORLD REBUILD */
+:root{--bg:#080e13;--panel:#101b20;--panel2:#17262a;--line:#30444a;--text:#e6e8df;--muted:#8eaaa8;--gold:#d7b875;--green:#8ebc91;--red:#d27a68;--shadow:0 24px 80px #0009}
+html,body{background:#071016;color:#e6e8df}
+body{overflow-x:hidden}
+body:before{content:"";position:fixed;inset:0;z-index:-2;background:radial-gradient(ellipse at 50% 0%,#23404a 0,transparent 48%),linear-gradient(180deg,#0a1820,#080e13 65%,#05090c)}
+body:after{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;opacity:.12;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E")}
+.shell{max-width:1800px;padding:16px 22px 30px}
+.topline{padding:5px 3px 14px;border-bottom:1px solid #9ab5ad20}
+.brand{gap:14px}.crest{width:43px;height:43px;border-radius:50%;border:1px solid #d7b87588;background:radial-gradient(circle at 35% 25%,#536d63,#13252a 70%);box-shadow:0 0 28px #d7b87520,inset 0 0 15px #fff2}
+.brand h1{font-family:Georgia,serif;letter-spacing:.12em;font-size:clamp(19px,2.4vw,28px)}
+.brand small,.eyebrow{opacity:.65;letter-spacing:.2em}
+.top-actions .btn{background:#0d1a20;border-color:#78918a35;border-radius:3px;text-transform:uppercase;letter-spacing:.1em;font-size:9px}
+.top-actions .btn.primary{background:linear-gradient(120deg,#c9ad70,#806a3d);border:0}
+.resourcebar{grid-template-columns:repeat(7,minmax(70px,1fr));gap:7px;margin:12px 0}
+.resource{min-height:54px;padding:8px 11px;border-radius:3px;background:linear-gradient(110deg,#12242a,#0c171d);border:1px solid #78918a24;box-shadow:inset 0 1px #fff1}
+.resource .name{font-size:8px;letter-spacing:.18em}.resource .value{font-family:Georgia,serif;font-size:20px}
+.layout{display:block;position:relative}
+.left-col,.right-col{display:none!important}
+.map-panel{border:0;border-radius:5px;background:transparent;box-shadow:none;overflow:visible}
+.map-headline{padding:4px 3px 12px;border:0}
+.map-headline h2{font-family:Georgia,serif;font-size:clamp(16px,2vw,23px);letter-spacing:.12em;color:#e6e2d2}
+.season{font-size:15px;color:#d5c18f}
+.pill{background:#17282b;border:1px solid #8ba49b44;color:#c8d5c9;border-radius:2px;letter-spacing:.15em}
+.map-wrap{position:relative;padding:12px;border:1px solid #8aa99c30;border-radius:4px;background:linear-gradient(145deg,#162a2b,#0a171b);box-shadow:0 30px 90px #0009,inset 0 0 90px #8db8a20b;overflow:hidden}
+.map-wrap:before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 42%,#071116a8 100%),linear-gradient(110deg,#07111633,transparent 25%,transparent 75%,#07111655)}
+.map-wrap:after{content:"";position:absolute;inset:-40% -20%;z-index:1;pointer-events:none;background:linear-gradient(105deg,transparent 40%,#c4dfd20c 49%,#d9e8d508 51%,transparent 60%);animation:worldSweep 16s linear infinite}
+@keyframes worldSweep{0%{transform:translateX(-35%)}100%{transform:translateX(35%)}}
+.map-grid{position:relative;z-index:0;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;aspect-ratio:16/9;max-height:720px;filter:saturate(.86) contrast(1.08)}
+.tile{border:1px solid #d5e1c30b;border-radius:2px;isolation:isolate;box-shadow:inset 0 0 22px #06101455;transition:filter .5s,transform .5s,box-shadow .5s;animation:landBreath 8s ease-in-out infinite alternate}
+.tile:nth-child(3n){animation-delay:-2s}.tile:nth-child(4n){animation-delay:-5s}
+@keyframes landBreath{from{filter:brightness(.94) saturate(.9)}to{filter:brightness(1.08) saturate(1.08)}}
+.tile:after{content:"";position:absolute;inset:0;z-index:-1;opacity:.48;pointer-events:none;background:repeating-linear-gradient(135deg,transparent 0 13px,#ffffff08 14px,transparent 15px 27px);animation:terrainDrift 22s linear infinite}
+@keyframes terrainDrift{to{background-position:100px 100px}}
+.tile .terrain-icon{font-size:clamp(12px,1.8vw,21px);opacity:.14;filter:blur(.3px);transform:translateY(-3px)}
+.tile .tile-name{font-size:clamp(6px,.65vw,9px);letter-spacing:.1em;text-transform:uppercase;color:#e2e8d4;opacity:.78}
+.tile .owner-dot{width:5px;height:5px;top:5px;right:5px;box-shadow:0 0 9px currentColor}
+.tile.terrain-plains{background:linear-gradient(145deg,#71845e,#455b45 55%,#334b40)}
+.tile.terrain-forest{background:radial-gradient(ellipse at 25% 35%,#56795a 0 8%,transparent 9%),radial-gradient(ellipse at 70% 65%,#315943 0 16%,transparent 17%),linear-gradient(145deg,#315a45,#183b34)}
+.tile.terrain-mountain{background:linear-gradient(145deg,#a4a393,#59665f 45%,#343f40)}
+.tile.terrain-river{background:linear-gradient(115deg,#547d83,#8bb4ae 48%,#315c67 53%,#274955);background-size:200% 100%;animation:riverFlow 7s ease-in-out infinite alternate}
+.tile.terrain-water{background:linear-gradient(125deg,#244f63,#347184 45%,#1d4057 75%,#356a77);background-size:220% 100%;animation:waterFlow 9s linear infinite}
+@keyframes riverFlow{to{background-position:100% 0}}@keyframes waterFlow{to{background-position:100% 0}}
+.tile.owner-player{box-shadow:inset 0 0 0 1px #e3ca8a99,inset 0 0 35px #d8bd6a22,0 0 13px #c9ad7020}
+.tile.owner-rival{box-shadow:inset 0 0 0 1px #d47b6c88,inset 0 0 30px #d47b6c1c}
+.tile.frontier{border:1px dashed #e6d49b99}
+.tile.city:before{inset:5px;border:1px solid #e8d29c99;box-shadow:0 0 16px #f3d48a55;animation:cityPulse 3s ease-in-out infinite}
+@keyframes cityPulse{50%{opacity:.3;transform:scale(.94)}}
+.tile:hover{filter:brightness(1.35) saturate(1.2);transform:scale(1.025);z-index:3}
+.tile.selected,.tile.sim-target{outline:1px solid #f0d99a;outline-offset:1px;box-shadow:inset 0 0 0 2px #f0d99a66,0 0 25px #f0d99a55;z-index:4}
+.map-legend{position:relative;z-index:2;justify-content:center;border:0;color:#91a7a0;font-size:9px;letter-spacing:.08em}
+.map-note{position:relative;z-index:2;text-align:center;color:#849b94;font-size:10px;letter-spacing:.04em}
+.world-sim{position:relative;margin:12px 0 0;padding:14px 16px;background:linear-gradient(110deg,#101f24ed,#0b171cfa);border:1px solid #829d9138;border-radius:4px;box-shadow:0 18px 60px #0008;backdrop-filter:blur(14px)}
+.sim-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.sim-heading .eyebrow{font-size:8px}.sim-heading h3{margin:2px 0;font-family:Georgia,serif;font-weight:500;font-size:16px;letter-spacing:.1em}.sim-heading p{margin:2px 0;color:#8ea49c;font-size:10px}
+.sim-version{font-size:9px;color:#cbb77e;letter-spacing:.15em}
+.sim-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.sim-stats>div{padding:8px 10px;background:#07131899;border:1px solid #809b9120}
+.sim-stats span,.sim-economy-stats>div{display:block;font-size:8px;color:#829a92;letter-spacing:.13em;text-transform:uppercase}
+.sim-stats b{display:block;margin-top:4px;font-family:Georgia,serif;font-size:14px;font-weight:500;color:#e3d8b6}
+.sim-economy{margin-top:8px;padding:9px 10px;background:#0a171b;border:1px solid #809b9120}
+.sim-economy-head{display:flex;justify-content:space-between;gap:10px;font-size:10px;color:#d6c28e}
+.sim-economy-stats{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+.sim-economy-stats>div{font-size:8px}.sim-economy-stats b{display:inline-block;margin-left:5px;color:#e4e3d7;font-size:11px;letter-spacing:0}
+.sim-policy,.sim-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;align-items:center}
+.sim-policy>span{font-size:9px;color:#8da29a;margin-right:5px}
+.world-sim .btn{padding:8px 11px;border-radius:2px;background:#14272c;border:1px solid #627d753f;font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+.world-sim .btn:hover{background:#294047;border-color:#b5c4a277;transform:translateY(-2px)}
+.world-sim .btn.primary{background:linear-gradient(120deg,#c9ad70,#806a3d);color:#101512;border:0}
+.world-sim .btn.active{border-color:#d2bb7b;color:#ead7a1;background:#343426}
+.sim-selection{padding:7px 0;color:#b4c1b1;font-size:10px}
+.sim-log{display:none}
+.toast{border-radius:2px;background:#d9c58f;color:#101713;letter-spacing:.06em;box-shadow:0 12px 50px #000b}
+.event-cover{background:#03080beF;backdrop-filter:blur(14px)}
+.event-card{border-radius:3px;background:linear-gradient(145deg,#20343a,#0b171b);border:1px solid #b9a16a88;box-shadow:0 30px 120px #000}
+.event-card h2{font-family:Georgia,serif;font-weight:500;letter-spacing:.06em}
+.event-card p{color:#b5c4ba}
+.footer-note{opacity:.5;letter-spacing:.12em}
+@media(max-width:800px){
+ .shell{padding:10px 9px 22px}.topline{gap:8px}.brand h1{font-size:18px}.brand small{display:none}.crest{width:36px;height:36px}
+ .top-actions{gap:4px}.top-actions .btn{padding:7px 8px;font-size:8px}
+ .resourcebar{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}.resource{min-height:46px;padding:6px 7px}.resource .value{font-size:17px}.resource .name{font-size:7px}
+ .map-wrap{padding:5px}.map-grid{aspect-ratio:1/1.05;gap:2px}.tile .tile-name{font-size:clamp(5px,1.2vw,7px)}
+ .map-legend{gap:8px;font-size:8px}.map-note{font-size:9px}
+ .world-sim{padding:10px}.sim-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.sim-stats>div{padding:7px}
+ .sim-heading p{max-width:230px;line-height:1.4}
+ .sim-economy-stats{gap:8px 13px}
+}
+@media(max-width:430px){.topline{align-items:center}.brand{gap:7px}.brand h1{font-size:15px}.brand .eyebrow{font-size:7px}.top-actions .btn{font-size:7px;padding:6px}.map-headline h2{font-size:14px}.season{font-size:12px}.sim-heading h3{font-size:14px}.sim-heading p{font-size:9px}.world-sim .btn{font-size:8px;padding:7px 8px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
