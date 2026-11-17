@@ -42,6 +42,18 @@ function normalizeComposition(units,total,preset='balanced'){
  return Object.fromEntries(UNIT_TYPES.map((u,i)=>[u.key,values[i]]));
 }
 function compositionTotal(units){return UNIT_TYPES.reduce((sum,u)=>sum+Math.max(0,Number(units?.[u.key])||0),0);}
+function terrainDefenseFactor(terrain){return terrain==='terrain-mountain'?1.45:terrain==='terrain-forest'?1.2:terrain==='terrain-river'?1.3:1;}
+function attackPower(units,terrain,morale,weatherMod,defenders){
+ const total=Math.max(1,compositionTotal(units)),enemyTotal=Math.max(1,compositionTotal(defenders));
+ const cavalryShare=units.cavalry/total,archerShare=units.archers/total,spearShare=units.spearmen/total,enemyCavalry=defenders.cavalry/enemyTotal;
+ const terrainTactics=terrain==='terrain-plains'?1+cavalryShare*.17:terrain==='terrain-forest'?1+archerShare*.12-cavalryShare*.2:terrain==='terrain-mountain'?1+archerShare*.06-cavalryShare*.25:1+spearShare*.08;
+ const counterBonus=units.spearmen*enemyCavalry*.18;
+ const base=units.infantry+units.spearmen*1.08+units.archers*1.18+units.cavalry*1.42+counterBonus;
+ const supplyFactor=state.supply<25?.72:state.supply<50?.88:1;
+ return base*(.55+morale/200)*weatherMod*terrainTactics*supplyFactor;
+}
+function defensePower(units,terrain){return (units.infantry+units.spearmen*1.28+units.archers*.72+units.cavalry*.88)*terrainDefenseFactor(terrain);}
+function garrisonFor(tile,owner,turn){const base=owner==='rival'?18+Math.floor(turn*1.4):7+Math.floor(turn*.45);return {troops:base,units:makeComposition(base,owner==='rival'?'shieldwall':'balanced')};}
 function applyLosses(army,losses){
  if(!army)return 0;const total=Math.max(0,Math.floor(army.troops||0));const actual=Math.min(total,Math.max(0,Math.floor(losses||0)));
  const units=normalizeComposition(army.units,total,state.formation),raw=UNIT_TYPES.map(u=>actual*(units[u.key]/Math.max(1,total))),cuts=raw.map(Math.floor);let rest=actual-cuts.reduce((a,b)=>a+b,0);
@@ -80,7 +92,7 @@ function makeUI(){
  '<div class="sim-stats"><div><span>Погода</span><b id="simWeather">Ясно</b></div><div><span>Время суток</span><b id="simPhase">День</b></div><div><span>Население</span><b id="simPopulation">1 250</b></div><div><span>Снабжение</span><b id="simSupply">100%</b></div><div><span>Боевой дух</span><b id="simMorale">82%</b></div><div><span>Отряд</span><b id="simArmy">Нет войска</b></div></div>'+
  '<div class="sim-economy"><div class="sim-economy-head"><strong>Казна и хозяйство</strong><span id="simEconomyStatus">Держава стабильна</span></div><div class="sim-economy-stats"><div>Казна <b id="simTreasury">120</b></div><div>Запасы пищи <b id="simFood">90</b></div><div>Налоги <b id="simTax">Обычные</b></div><div>Недовольство <b id="simUnrest">12%</b></div></div><div class="sim-policy"><span>Налоговая политика</span><button class="btn" data-tax="low">Низкие</button><button class="btn active" data-tax="normal">Обычные</button><button class="btn" data-tax="high">Высокие</button></div><div class="sim-actions"><button class="btn" id="simTrade">Торговый караван</button><button class="btn" id="simGranary">Построить амбар</button></div></div>'+'<section class="sim-army-builder"><div class="sim-army-builder-head"><div><strong>Подготовка войска</strong><p>Выберите тактику перед выходом. Состав влияет на бой и скорость марша.</p></div><span id="simFormationTotal">28 бойцов</span></div><div class="sim-formation-options"><button class="btn active" data-formation="balanced">Сбалансированный</button><button class="btn" data-formation="shieldwall">Стена щитов</button><button class="btn" data-formation="volley">Лучный обстрел</button><button class="btn" data-formation="cavalry">Кавалерийский натиск</button></div><p id="simFormationDescription" class="sim-formation-description"></p><div id="simRosterCards" class="sim-roster-cards"></div><div id="simRosterSummary" class="sim-roster-summary">Отряд ещё не сформирован.</div></section>'+
  '<div class="sim-actions"><button class="btn primary" id="simMarch" disabled>Отправить отряд</button><button class="btn" id="simRecall" disabled>Отозвать отряд</button><button class="btn" id="simTrain">Провести учения</button><button class="btn" id="simDevelop" disabled>Развивать город</button><button class="btn" id="simTurn">Сменить сезон</button></div>'+
- '<div class="sim-selection" id="simSelection">Выберите область на карте, чтобы проложить маршрут.</div>'+
+ '<div class="sim-selection" id="simSelection">Выберите область на карте, чтобы проложить маршрут.</div><div class="sim-battle-preview" id="simBattlePreview"></div>'+
  '<div class="sim-log"><div class="sim-log-title">Хроника похода</div><div id="simLog" aria-live="polite"></div></div>';
  mapPanel.appendChild(panel);
  const canvas=document.createElement('canvas');canvas.className='sim-canvas';canvas.setAttribute('aria-hidden','true');mapWrap.appendChild(canvas);
@@ -105,7 +117,18 @@ function renderUI(){
  const recall=$('simRecall');recall.disabled=!army||!!army.path?.length;recall.textContent=army?.recalling?'Отряд возвращается домой…':'Отозвать отряд';
  const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected);
  const activeSiege=sel&&state.sieges.find(x=>x.tile===state.selected);$('simSelection').textContent=sel?'Цель: '+tileName(sel,state.selected)+' · '+terrainNames[tileTerrain(sel)]+' · '+(activeSiege?'ОСАДА '+Math.min(3,Math.floor(activeSiege.progress))+'/3':tileOwner(sel)==='rival'?'вражеская территория':tileOwner(sel)==='player'?'ваша территория':'нейтральная область'):'Выберите область на карте, чтобы проложить маршрут.';
- renderLog();renderEconomy();renderArmyPanel();
+ renderLog();renderEconomy();renderArmyPanel();renderBattlePreview(sel);
+}
+function renderBattlePreview(tile){
+ const panel=$('simBattlePreview');if(!panel)return;
+ if(!tile||tileOwner(tile)==='player'){panel.classList.remove('visible');panel.innerHTML='';return;}
+ const owner=tileOwner(tile),terrain=tileTerrain(tile),garrison=garrisonFor(tile,owner,state.turn),ownTotal=state.army?state.army.troops:Math.max(0,Math.min(60,troopCount()));
+ const ownUnits=state.army?normalizeComposition(state.army.units,ownTotal,state.formation):makeComposition(ownTotal,state.formation);
+ const ownPower=attackPower(ownUnits,terrain,state.morale,weather().combat,garrison.units),enemyPower=defensePower(garrison.units,terrain),ratio=ownPower/Math.max(1,enemyPower);
+ const forecast=ratio>=1.35?'Преимущество':ratio>=1?'Силы сопоставимы':ratio>=.75?'Высокий риск':'Гарнизон сильнее';
+ const tileType=tile.classList.contains('city')&&owner==='rival'?'Здесь начнётся осада: город нельзя взять одним штурмом.':'Маршрут, снабжение и состояние войска влияют на итог похода.';
+ panel.innerHTML='<div class="sim-battle-head"><strong>Тактическая оценка</strong><span>'+forecast+'</span></div><div class="sim-battle-values"><div><span>Ваш ударный потенциал</span><b>'+Math.round(ownPower)+'</b></div><div><span>Оборона области</span><b>'+Math.round(enemyPower)+'</b></div><div><span>Гарнизон</span><b>'+garrison.troops+' бойцов</b></div></div><div class="sim-battle-rosters"><div>Ваш состав: пехота '+ownUnits.infantry+', копейщики '+ownUnits.spearmen+', лучники '+ownUnits.archers+', кавалерия '+ownUnits.cavalry+'.</div><div>Защитники: пехота '+garrison.units.infantry+', копейщики '+garrison.units.spearmen+', лучники '+garrison.units.archers+', кавалерия '+garrison.units.cavalry+'.</div></div><p>'+tileType+'</p>'+(state.army?'':'<p class="sim-battle-note">Это прогноз для выбранной формации. Сначала сформируйте полевой отряд.</p>');
+ panel.classList.add('visible');
 }
 function renderArmyPanel(){
  const total=state.army?state.army.troops:Math.max(0,Math.min(60,troopCount()));
@@ -145,13 +168,8 @@ function battle(army,target){
    }
    state.morale=Math.max(0,state.morale-3);return;
  }
- const terrain=tileTerrain(tile),weatherMod=weather().combat,units=normalizeComposition(army.units,army.troops,state.formation);
- const defense=owner==='rival'?18+Math.floor(state.turn*1.4):owner==='neutral'?7+Math.floor(state.turn*.45):0;
- const terrainDefense=terrain==='terrain-mountain'?1.45:terrain==='terrain-forest'?1.2:terrain==='terrain-river'?1.3:1;
- const unitPower=units.infantry+units.spearmen*1.08+units.archers*1.18+units.cavalry*1.42;
- const cavalryShare=units.cavalry/Math.max(1,army.troops),archerShare=units.archers/Math.max(1,army.troops),spearShare=units.spearmen/Math.max(1,army.troops);
- const terrainTactics=terrain==='terrain-plains'?1+cavalryShare*.17:terrain==='terrain-forest'?1+archerShare*.12-cavalryShare*.2:terrain==='terrain-mountain'?1+archerShare*.06-cavalryShare*.25:1+spearShare*.08;
- const attack=unitPower*(.55+state.morale/200)*weatherMod*terrainTactics,defensePower=defense*terrainDefense;
+ const terrain=tileTerrain(tile),weatherMod=weather().combat,units=normalizeComposition(army.units,army.troops,state.formation),garrison=garrisonFor(tile,owner,state.turn);
+ const attack=attackPower(units,terrain,state.morale,weatherMod,garrison.units),defensePower=defensePower(garrison.units,terrain);
  if(owner==='player'){
    army.lastSafeTile=null;
    if(army.recalling){const returned=army.troops;state.army=null;log('Отряд вернулся в столицу. В строю осталось '+returned+' бойцов; теперь можно выбрать новую тактику.');}
