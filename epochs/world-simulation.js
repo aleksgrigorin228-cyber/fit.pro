@@ -54,18 +54,23 @@ function attackPower(units,terrain,morale,weatherMod,defenders){
 }
 function defensePower(units,terrain){return (units.infantry+units.spearmen*1.28+units.archers*.72+units.cavalry*.88)*terrainDefenseFactor(terrain);}
 function garrisonFor(tile,owner,turn){const base=owner==='rival'?18+Math.floor(turn*1.4):7+Math.floor(turn*.45);return {troops:base,units:makeComposition(base,owner==='rival'?'shieldwall':'balanced')};}
+function estimateCasualties(ownTroops,enemyTroops,attack,enemyStrength){
+ const ratio=attack/Math.max(1,enemyStrength),pressure=ratio>=1.5?.55:ratio>=1?.8:ratio>=.75?1.05:1.3;
+ return Math.min(Math.max(0,Math.floor(ownTroops)),Math.max(1,Math.round((ownTroops*.06+enemyTroops*.15)*pressure)));
+}
 function applyLosses(army,losses){
  if(!army)return 0;const total=Math.max(0,Math.floor(army.troops||0));const actual=Math.min(total,Math.max(0,Math.floor(losses||0)));
  const units=normalizeComposition(army.units,total,state.formation),raw=UNIT_TYPES.map(u=>actual*(units[u.key]/Math.max(1,total))),cuts=raw.map(Math.floor);let rest=actual-cuts.reduce((a,b)=>a+b,0);
  raw.map((v,i)=>({i,f:v-cuts[i]})).sort((a,b)=>b.f-a.f).slice(0,rest).forEach(x=>cuts[x.i]++);
- army.units=Object.fromEntries(UNIT_TYPES.map((u,i)=>[u.key,Math.max(0,units[u.key]-cuts[i])]));army.troops=compositionTotal(army.units);return actual;
+ army.units=Object.fromEntries(UNIT_TYPES.map((u,i)=>[u.key,Math.max(0,units[u.key]-cuts[i])]));army.troops=compositionTotal(army.units);state.armyLosses=Math.max(0,Number(state.armyLosses)||0)+actual;return actual;
 }
 const terrainNames = { 'terrain-plains':'Равнина','terrain-forest':'Лес','terrain-mountain':'Горы','terrain-river':'Переправа','terrain-water':'Вода' };
-const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,formation:'balanced',events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
+const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,armyLosses:0,formation:'balanced',events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
 function load(){
   try { const x=JSON.parse(localStorage.getItem(KEY)||'null'); if(!x||x.version!==1)return fresh();
     const saved={...fresh(),...x,events:Array.isArray(x.events)?x.events.slice(0,12):[],captured:Array.isArray(x.captured)?x.captured:[],sieges:Array.isArray(x.sieges)?x.sieges:[],cityDamage:x.cityDamage&&typeof x.cityDamage==='object'?x.cityDamage:{}};
     if(!FORMATIONS[saved.formation])saved.formation='balanced';
+    saved.armyLosses=Math.max(0,Math.floor(Number(saved.armyLosses)||0));
     if(saved.army){saved.army.units=normalizeComposition(saved.army.units,saved.army.troops,saved.formation);saved.army.troops=compositionTotal(saved.army.units);}
     return saved;
   } catch(_){return fresh();}
@@ -75,7 +80,7 @@ const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: red
 const weather=()=>weatherTypes[state.weather%weatherTypes.length];
 function log(message){state.events.unshift(message);state.events=state.events.slice(0,12);save();renderLog();}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(_){}}
-function troopCount(){const n=Number((($('armyLabel')?.textContent||'28').match(/\d+/)||['28'])[0]);return Number.isFinite(n)?n:28;}
+function troopCount(){const n=Number((($('armyLabel')?.textContent||'28').match(/\d+/)||['28'])[0]);return Math.max(0,(Number.isFinite(n)?n:28)-Math.max(0,Number(state.armyLosses)||0));}
 function getTiles(){return Array.from(grid.querySelectorAll('.tile'));}
 function tileTerrain(tile){return Object.keys(terrainNames).find(k=>tile.classList.contains(k))||'terrain-plains';}
 function tileOwner(tile){return tile.classList.contains('owner-player')?'player':tile.classList.contains('owner-rival')?'rival':'neutral';}
@@ -126,21 +131,22 @@ function renderBattlePreview(tile){
  if(!tile||tileOwner(tile)==='player'){panel.classList.remove('visible');panel.innerHTML='';return;}
  const owner=tileOwner(tile),terrain=tileTerrain(tile),garrison=garrisonFor(tile,owner,state.turn),ownTotal=state.army?state.army.troops:Math.max(0,Math.min(60,troopCount()));
  const ownUnits=state.army?normalizeComposition(state.army.units,ownTotal,state.formation):makeComposition(ownTotal,state.formation);
- const ownPower=attackPower(ownUnits,terrain,state.morale,weather().combat,garrison.units),enemyPower=defensePower(garrison.units,terrain),ratio=ownPower/Math.max(1,enemyPower);
+ const ownPower=attackPower(ownUnits,terrain,state.morale,weather().combat,garrison.units),enemyPower=defensePower(garrison.units,terrain),ratio=ownPower/Math.max(1,enemyPower),estimatedLosses=estimateCasualties(ownTotal,garrison.troops,ownPower,enemyPower);
  const forecast=ratio>=1.35?'Преимущество':ratio>=1?'Силы сопоставимы':ratio>=.75?'Высокий риск':'Гарнизон сильнее';
  const tileType=tile.classList.contains('city')&&owner==='rival'?'Здесь начнётся осада: город нельзя взять одним штурмом.':'Маршрут, снабжение и состояние войска влияют на итог похода.';
- panel.innerHTML='<div class="sim-battle-head"><strong>Тактическая оценка</strong><span>'+forecast+'</span></div><div class="sim-battle-values"><div><span>Ваш ударный потенциал</span><b>'+Math.round(ownPower)+'</b></div><div><span>Оборона области</span><b>'+Math.round(enemyPower)+'</b></div><div><span>Гарнизон</span><b>'+garrison.troops+' бойцов</b></div></div><div class="sim-battle-rosters"><div>Ваш состав: пехота '+ownUnits.infantry+', копейщики '+ownUnits.spearmen+', лучники '+ownUnits.archers+', кавалерия '+ownUnits.cavalry+'.</div><div>Защитники: пехота '+garrison.units.infantry+', копейщики '+garrison.units.spearmen+', лучники '+garrison.units.archers+', кавалерия '+garrison.units.cavalry+'.</div></div><p>'+tileType+'</p>'+(state.army?'':'<p class="sim-battle-note">Это прогноз для выбранной формации. Сначала сформируйте полевой отряд.</p>');
+ panel.innerHTML='<div class="sim-battle-head"><strong>Тактическая оценка</strong><span>'+forecast+'</span></div><div class="sim-battle-values"><div><span>Ваш ударный потенциал</span><b>'+Math.round(ownPower)+'</b></div><div><span>Оборона области</span><b>'+Math.round(enemyPower)+'</b></div><div><span>Гарнизон</span><b>'+garrison.troops+' бойцов</b></div><div><span>Ожидаемые потери</span><b>до '+estimatedLosses+'</b></div></div><div class="sim-battle-rosters"><div>Ваш состав: пехота '+ownUnits.infantry+', копейщики '+ownUnits.spearmen+', лучники '+ownUnits.archers+', кавалерия '+ownUnits.cavalry+'.</div><div>Защитники: пехота '+garrison.units.infantry+', копейщики '+garrison.units.spearmen+', лучники '+garrison.units.archers+', кавалерия '+garrison.units.cavalry+'.</div></div><p>'+tileType+'</p>'+(state.army?'':'<p class="sim-battle-note">Это прогноз для выбранной формации. Сначала сформируйте полевой отряд.</p>');
  panel.classList.add('visible');
 }
 function renderArmyPanel(){
- const total=state.army?state.army.troops:Math.max(0,Math.min(60,troopCount()));
+ const available=troopCount(),deployed=state.army?state.army.troops:0,reserve=Math.max(0,available-deployed);
+ const total=state.army?state.army.troops:Math.max(0,Math.min(60,available));
  const units=state.army?normalizeComposition(state.army.units,total,state.formation):makeComposition(total,state.formation);
  const description=state.army?.recalling?'Отряд возвращается к столице. После прибытия можно будет выбрать новую тактику.':state.army?'Состав действующего полевого отряда. Тактику можно изменить после его возвращения.':FORMATIONS[state.formation].description;
  const desc=$('simFormationDescription'),count=$('simFormationTotal'),cards=$('simRosterCards'),summary=$('simRosterSummary');
  if(desc)desc.textContent=description;if(count)count.textContent=total+' бойцов';
  document.querySelectorAll('[data-formation]').forEach(b=>{b.classList.toggle('active',b.dataset.formation===state.formation);b.disabled=!!state.army;});
  if(cards)cards.innerHTML=UNIT_TYPES.map(u=>'<div class="sim-roster-card"><strong>'+u.name+'</strong><b>'+units[u.key]+'</b><span>'+u.role+'</span></div>').join('');
- if(summary){const speedBonus=Math.round((units.cavalry/Math.max(1,total))*.18*100);summary.textContent=state.army?'Полевой отряд сформирован. Кавалерия даёт до '+speedBonus+'% дополнительной скорости марша.':'После формирования в отряд войдут '+total+' воинов. Кавалерия ускоряет передвижение, лучники усиливают атаку на равнинах, копейщики повышают стойкость.';}
+ if(summary){const speedBonus=Math.round((units.cavalry/Math.max(1,total))*.18*100);summary.textContent=state.army?'В поле: '+deployed+' бойцов. Резерв: '+reserve+'. Постоянные потери: '+state.armyLosses+'. Кавалерия даёт до '+speedBonus+'% дополнительной скорости марша.':'Доступно для формирования: '+available+' воинов. Постоянные потери: '+state.armyLosses+'. Кавалерия ускоряет передвижение, лучники усиливают атаку на равнинах, копейщики повышают стойкость.';}
 }
 function neighbors(i){const row=Math.floor(i/9),col=i%9,out=[];if(col>0)out.push(i-1);if(col<8)out.push(i+1);if(row>0)out.push(i-9);if(row<6)out.push(i+9);return out.filter(n=>n<tiles.length);}
 function route(from,to){
@@ -178,7 +184,7 @@ function battle(army,target){
    else log('Отряд прибыл в дружественную область.');
    return;
  }
- const losses=Math.min(army.troops,Math.max(1,Math.round(enemyStrength*.22+army.troops*.07)));
+ const losses=estimateCasualties(army.troops,garrison.troops,attack,enemyStrength);
  applyLosses(army,losses);state.morale=Math.max(0,state.morale-(owner==='rival'?13:5));
  if(attack>enemyStrength&&army.troops>0){
    state.captured=[...new Set([...state.captured,target])];tile.classList.remove('owner-rival','owner-neutral');tile.classList.add('owner-player');
