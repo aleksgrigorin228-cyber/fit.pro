@@ -181,9 +181,9 @@ function renderArmyPanel(){
  if(summary){const speedBonus=Math.round((units.cavalry/Math.max(1,total))*.18*100);summary.textContent=state.army?'В поле: '+deployed+' бойцов. Резерв: '+reserve+'. Постоянные потери: '+state.armyLosses+'. Кавалерия даёт до '+speedBonus+'% дополнительной скорости марша.':'Доступно для формирования: '+available+' воинов. Постоянные потери: '+state.armyLosses+'. Кавалерия ускоряет передвижение, лучники усиливают атаку на равнинах, копейщики повышают стойкость.';}
 }
 function neighbors(i){const row=Math.floor(i/9),col=i%9,out=[];if(col>0)out.push(i-1);if(col<8)out.push(i+1);if(row>0)out.push(i-9);if(row<6)out.push(i+9);return out.filter(n=>n<tiles.length);}
-function route(from,to){
+function route(from,to,allowEnemy=false){
  const q=[from],prev=new Map([[from,-1]]);
- while(q.length){const n=q.shift();if(n===to)break;for(const v of neighbors(n)){if(prev.has(v)||tileTerrain(tiles[v])==='terrain-water'||(!state.diplomacy.atWar&&tileOwner(tiles[v])==='rival'))continue;prev.set(v,n);q.push(v);}}
+ while(q.length){const n=q.shift();if(n===to)break;for(const v of neighbors(n)){if(prev.has(v)||tileTerrain(tiles[v])==='terrain-water'||(!allowEnemy&&!state.diplomacy.atWar&&tileOwner(tiles[v])==='rival'))continue;prev.set(v,n);q.push(v);}}
  if(!prev.has(to))return null;const path=[];for(let n=to;n!==from;n=prev.get(n))path.push(n);return path.reverse();
 }
 function selectTile(tile){
@@ -191,10 +191,10 @@ function selectTile(tile){
 }
 function march(){
  if(!state.army||state.army.recalling||state.selected<0||state.army.path?.length)return;
+ if(tileOwner(tiles[state.selected])==='rival'&&!state.diplomacy.atWar){log('Нельзя наступать на земли Вейра без объявления войны. Откройте дипломатические отношения.');renderUI();return;}
  const path=route(state.army.tile,state.selected);
  if(!path){log('Маршрут перекрыт водой или недоступным участком.');return;}
  if(!path.length)return;
- if(tileOwner(tiles[state.selected])==='rival'&&!state.diplomacy.atWar){log('Нельзя наступать на земли Вейра без объявления войны. Откройте дипломатические отношения.');renderUI();return;}
  state.army.path=path;state.army.progress=0;state.army.target=state.selected;
  log('Отряд выступил к области «'+tileName(tiles[state.selected],state.selected)+'».');
  renderUI();save();
@@ -282,7 +282,7 @@ function recallArmy(){
  const home=Number.isInteger(army.homeTile)&&tileOwner(tiles[army.homeTile])==='player'?army.homeTile:tiles.findIndex(t=>tileOwner(t)==='player');
  if(home<0){log('Невозможно отозвать войско: столица и дружественные земли потеряны.');return;}
  if(home===army.tile){const returned=army.troops;state.army=null;state.sieges=state.sieges.filter(x=>x.tile!==home);syncTiles();log('Полевой отряд распущен у столицы. В строю осталось '+returned+' бойцов.');renderUI();save();return;}
- const path=route(army.tile,home);if(!path){log('Маршрут домой перекрыт водой. Выберите ближайшую дружественную область.');return;}
+ const path=route(army.tile,home,true);if(!path){log('Маршрут домой перекрыт водой. Выберите ближайшую дружественную область.');return;}
  state.sieges=state.sieges.filter(x=>x.tile!==army.tile);syncTiles();army.path=path;army.progress=0;army.target=home;army.recalling=true;
  log('Отряд отступает к столице. После возвращения его можно будет сформировать заново.');renderUI();save();
 }
@@ -336,7 +336,7 @@ function draw(t){
 grid.addEventListener('click',e=>{const tile=e.target.closest('.tile');if(tile)selectTile(tile);});
 $('simMarch').addEventListener('click',march);
 $('simTrain').addEventListener('click',train);$('simDevelop').addEventListener('click',developCity);
-$('simTurn').addEventListener('click',advanceSeason);document.querySelectorAll('[data-tax]').forEach(b=>b.addEventListener('click',()=>setTax(b.dataset.tax)));$('simTrade').addEventListener('click',trade);$('simGranary').addEventListener('click',buildGranary);
+$('simTurn').addEventListener('click',()=>{const end=$('endBtn');if(end)end.click();else advanceSeason();});document.querySelectorAll('[data-tax]').forEach(b=>b.addEventListener('click',()=>setTax(b.dataset.tax)));$('simTrade').addEventListener('click',trade);$('simGranary').addEventListener('click',buildGranary);
 const simPanel=$('worldSim');
 const coreArmyLabel=$('armyLabel');if(coreArmyLabel)new MutationObserver(()=>renderUI()).observe(coreArmyLabel,{childList:true,subtree:true,characterData:true});
 const armyBtn=document.createElement('button');armyBtn.className='btn';armyBtn.id='simRaise';armyBtn.textContent='Сформировать отряд';$('simTrain').before(armyBtn);armyBtn.addEventListener('click',createArmy);$('simRecall').addEventListener('click',recallArmy);
