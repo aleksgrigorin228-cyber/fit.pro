@@ -89,7 +89,7 @@ function battle(army,target){
  const tile=tiles[target],owner=tileOwner(tile);
  if(owner==='rival'&&tile.classList.contains('city')){
    if(!state.sieges.some(x=>x.tile===target)){
-     state.sieges.push({tile:target,progress:0,started:state.turn});
+     state.sieges.push({tile:target,progress:0,started:state.turn});syncTiles();
      state.cityDamage[target]=Math.max(0,Number(state.cityDamage[target]||0));
      log('Город «'+tileName(tile,target)+'» окружён. Началась осада: перекрыты дороги и подвоз припасов.');
    }
