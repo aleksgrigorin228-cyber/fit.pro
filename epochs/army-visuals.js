@@ -7,7 +7,7 @@
  const canvas=document.createElement('canvas');canvas.className='army-canvas';canvas.setAttribute('aria-hidden','true');wrap.appendChild(canvas);
  const ctx=canvas.getContext('2d');if(!ctx)return;
  const KEY='epohi_world_sim_v1',reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,mobile=matchMedia('(max-width:700px)').matches;
- let w=1,h=1,dpr=1,tiles=[],centers=[],snapshot=null,visual=null,last=performance.now(),raf=0,elapsed=0,flash=0,flashColor='#e5c47b',clash=0,clashAt=-1,clashColor='#f1d18a',lastEvent='',dust=[];
+ let w=1,h=1,dpr=1,tiles=[],centers=[],snapshot=null,visual=null,last=performance.now(),raf=0,elapsed=0,flash=0,flashColor='#e5c47b',clash=0,clashAt=-1,clashColor='#f1d18a',clashType='none',lastEvent='',dust=[];
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a);
  function read(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(_){return null}}
  function resize(){const r=wrap.getBoundingClientRect();w=r.width;h=r.height;dpr=Math.min(devicePixelRatio||1,mobile?1.25:1.7);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+'px';canvas.style.height=h+'px';ctx.setTransform(dpr,0,0,dpr,0,0);locate()}
@@ -29,14 +29,14 @@
   }else{visual.tile=a.tile;visual.index=0;visual.progress=0;visual.path=[];}
  }
  function line(x1,y1,x2,y2,color,width,dash){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore()}
- function soldier(x,y,scale,angle,shade,step=0){
+ function soldier(x,y,scale,angle,shade,step=0,team='player'){
   const gait=Math.sin(step),lift=Math.max(0,gait)*.8;
   ctx.save();ctx.translate(x,y-lift);ctx.rotate(angle);ctx.scale(scale,scale);
   ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,4,5.2,2.1,0,0,Math.PI*2);ctx.fill();
   ctx.lineCap='round';ctx.strokeStyle='#493b2d';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(-1.2,-.5);ctx.lineTo(-2.1+gait*1.65,3.5-Math.max(0,gait)*1.1);ctx.moveTo(1.1,-.5);ctx.lineTo(2.2-gait*1.65,3.5-Math.max(0,-gait)*1.1);ctx.stroke();
   ctx.fillStyle='#5f4b36';ctx.fillRect(-2.3+gait*1.65,2.7,2.2,1.1);ctx.fillRect(.9-gait*1.65,2.7,2.2,1.1);
-  ctx.fillStyle='#465941';ctx.beginPath();ctx.moveTo(-2.6,-6);ctx.lineTo(-4,-1);ctx.lineTo(-2.7,1.5);ctx.lineTo(2.9,1.5);ctx.lineTo(4,-1);ctx.lineTo(2.5,-6);ctx.closePath();ctx.fill();
-  ctx.fillStyle=shade;ctx.beginPath();ctx.moveTo(-2.1,-6.5);ctx.lineTo(2.1,-6.5);ctx.lineTo(3.1,-.7);ctx.lineTo(2,1);ctx.lineTo(-2,1);ctx.lineTo(-3.1,-.7);ctx.closePath();ctx.fill();ctx.strokeStyle='#554631';ctx.lineWidth=.65;ctx.stroke();
+  ctx.fillStyle=team==='rival'?'#713a32':'#465941';ctx.beginPath();ctx.moveTo(-2.6,-6);ctx.lineTo(-4,-1);ctx.lineTo(-2.7,1.5);ctx.lineTo(2.9,1.5);ctx.lineTo(4,-1);ctx.lineTo(2.5,-6);ctx.closePath();ctx.fill();
+  ctx.fillStyle=team==='rival'?'#a95a4c':shade;ctx.beginPath();ctx.moveTo(-2.1,-6.5);ctx.lineTo(2.1,-6.5);ctx.lineTo(3.1,-.7);ctx.lineTo(2,1);ctx.lineTo(-2,1);ctx.lineTo(-3.1,-.7);ctx.closePath();ctx.fill();ctx.strokeStyle='#554631';ctx.lineWidth=.65;ctx.stroke();
   ctx.fillStyle='#c8ac70';ctx.fillRect(-2.7,-3.1,5.4,.8);ctx.fillStyle='#55422e';ctx.fillRect(-.65,-3.35,1.3,1.3);
   ctx.strokeStyle='#bca16e';ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(-2.4,-5.4);ctx.lineTo(-4.1,-1.1);ctx.moveTo(2.4,-5.4);ctx.lineTo(4.1,-1.1);ctx.stroke();
   ctx.fillStyle='#6f4632';ctx.beginPath();ctx.roundRect(-5.1,-5.2,2.5,6.3,.7);ctx.fill();ctx.strokeStyle='#d0b477';ctx.lineWidth=.7;ctx.stroke();ctx.beginPath();ctx.moveTo(-3.85,-4.4);ctx.lineTo(-3.85,.2);ctx.stroke();
@@ -79,15 +79,28 @@
   const ev=s?.events?.[0]||'';
   if(ev&&ev!==lastEvent){
    lastEvent=ev;
-   if(/Победа|перешла под ваш контроль/i.test(ev)){flash=1;flashColor='#e9cf8a';clash=.95;clashColor='#f1d18a'}
-   else if(/поражение|рассеяно/i.test(ev)){flash=1;flashColor='#a84b43';clash=.8;clashColor='#dc7766'}
-   else if(/окружён|осада/i.test(ev)){clash=.75;clashColor='#d6ba7b'}
+   if(/Победа|перешла под ваш контроль/i.test(ev)){flash=1;flashColor='#e9cf8a';clash=1.35;clashColor='#f1d18a';clashType='victory'}
+   else if(/поражение|рассеяно/i.test(ev)){flash=1;flashColor='#a84b43';clash=1.2;clashColor='#dc7766';clashType='defeat'}
+   else if(/Отряд прибыл|окружён|осада/i.test(ev)){clash=.9;clashColor='#d6ba7b';clashType='siege'}
    else if(/Пожар/i.test(ev)){flash=.6;flashColor='#ef8746'}
-   if(clash>0)clashAt=Number.isInteger(s?.army?.tile)?s.army.tile:(Number.isInteger(s?.selected)?s.selected:-1);
+   if(clash>0)clashAt=Number.isInteger(s?.army?.target)?s.army.target:(Number.isInteger(s?.army?.tile)?s.army.tile:(Number.isInteger(s?.selected)?s.selected:-1));
   }
   flash=Math.max(0,flash-dt*.75);clash=Math.max(0,clash-dt*1.35);
   if(flash>0){ctx.save();const g=ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)*.7);g.addColorStop(0,flashColor+'18');g.addColorStop(1,'rgba(0,0,0,0)');ctx.globalAlpha=flash;ctx.fillStyle=g;ctx.fillRect(0,0,w,h);ctx.restore();}
-  if(clash>0){const p=centers[clashAt]||(visual?centers[visual.tile]:null);if(p){ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=clash;ctx.rotate(t*1.8);ctx.strokeStyle=clashColor;ctx.lineWidth=2.1;ctx.shadowColor=clashColor;ctx.shadowBlur=9;ctx.beginPath();ctx.arc(0,0,8+Math.sin(t*13)*3,0,Math.PI*1.7);ctx.stroke();for(let k=0;k<6;k++){const a=k*Math.PI/3+t*1.4,r=11+Math.sin(t*10+k)*2;ctx.beginPath();ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);ctx.lineTo(Math.cos(a)*(r+4),Math.sin(a)*(r+4));ctx.stroke();}ctx.restore();}}
+  if(clash>0){const p=centers[clashAt]||(visual?centers[visual.tile]:null);if(p){
+   const alpha=Math.min(1,clash),age=1.35-clash,retreat=clashType==='victory'?age*7:clashType==='defeat'?-age*2:0;
+   // Rival shield line: small individual figures make a battle readable at map scale.
+   ctx.save();ctx.globalAlpha=alpha*.92;
+   const guards=[[-8,-8],[0,-12],[8,-8],[0,-3]];
+   guards.forEach(([ox,oy],i)=>{const spread=retreat+(clashType==='defeat'?Math.sin(t*6+i)*1.2:0);soldier(p.x+ox+spread,p.y+oy,Math.max(.42,Math.min(.65,p.size/68)),Math.sin(t*5+i)*.05,'#caa985',t*8+i*1.8,'rival');});
+   ctx.restore();
+   // Crossing blade arcs and quick impact sparks.
+   ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=alpha;ctx.strokeStyle=clashColor;ctx.lineWidth=2;ctx.lineCap='round';ctx.shadowColor=clashColor;ctx.shadowBlur=8;
+   const swing=Math.sin(t*15)*.23;ctx.beginPath();ctx.moveTo(-10,-7);ctx.lineTo(9,7+swing*8);ctx.moveTo(10,-8);ctx.lineTo(-8,8-swing*8);ctx.stroke();
+   ctx.rotate(t*1.8);ctx.beginPath();ctx.arc(0,0,8+Math.sin(t*13)*3,0,Math.PI*1.7);ctx.stroke();
+   for(let k=0;k<7;k++){const a=k*Math.PI*2/7+t*1.4,r=11+Math.sin(t*10+k)*2;ctx.beginPath();ctx.moveTo(Math.cos(a)*r,Math.sin(a)*r);ctx.lineTo(Math.cos(a)*(r+4),Math.sin(a)*(r+4));ctx.stroke();}
+   ctx.restore();
+  }}
   if(s?.army&&s.army.path?.length&&visual?.index>=visual.path.length){
    const p=centers[s.army.target];if(p){ctx.save();ctx.strokeStyle='rgba(232,202,130,.6)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,8+Math.sin(t*9)*3,0,Math.PI*2);ctx.stroke();ctx.restore();}
   }
