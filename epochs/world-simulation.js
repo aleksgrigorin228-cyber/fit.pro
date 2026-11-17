@@ -67,10 +67,10 @@ function applyLosses(army,losses){
 }
 const terrainNames = { 'terrain-plains':'Равнина','terrain-forest':'Лес','terrain-mountain':'Горы','terrain-river':'Переправа','terrain-water':'Вода' };
 function coreTurnNumber(){const n=Number((($('turnLabel')?.textContent||'1').match(/\d+/)||['1'])[0]);return Number.isFinite(n)?Math.max(1,n):1;}
-const fresh = () => ({version:1,coreTurnSeen:coreTurnNumber(),turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,armyLosses:0,formation:'balanced',diplomacy:freshDiplomacy(),events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
+const fresh = () => ({version:1,coreTurnSeen:coreTurnNumber(),turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,armyLosses:0,formation:'balanced',diplomacy:freshDiplomacy(),events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{},cityLevels:{}});
 function load(){
   try { const x=JSON.parse(localStorage.getItem(KEY)||'null'); if(!x||x.version!==1)return fresh();
-    const saved={...fresh(),...x,events:Array.isArray(x.events)?x.events.slice(0,12):[],captured:Array.isArray(x.captured)?x.captured:[],sieges:Array.isArray(x.sieges)?x.sieges:[],cityDamage:x.cityDamage&&typeof x.cityDamage==='object'?x.cityDamage:{}};
+    const saved={...fresh(),...x,events:Array.isArray(x.events)?x.events.slice(0,12):[],captured:Array.isArray(x.captured)?x.captured:[],sieges:Array.isArray(x.sieges)?x.sieges:[],cityDamage:x.cityDamage&&typeof x.cityDamage==='object'?x.cityDamage:{},cityLevels:x.cityLevels&&typeof x.cityLevels==='object'?x.cityLevels:{}};
     if(!FORMATIONS[saved.formation])saved.formation='balanced';
     saved.armyLosses=Math.max(0,Math.floor(Number(saved.armyLosses)||0));
     saved.coreTurnSeen=Math.max(1,Math.floor(Number(saved.coreTurnSeen)||coreTurnNumber()));
@@ -94,8 +94,9 @@ function landCount(){const n=Number((($('landLabel')?.textContent||'5').match(/\
 function economicProfile(){
  const owned=tiles.filter(t=>tileOwner(t)==='player'),profile={plains:0,forest:0,mountain:0,river:0};
  owned.forEach(t=>{const type=tileTerrain(t);if(type==='terrain-plains')profile.plains++;else if(type==='terrain-forest')profile.forest++;else if(type==='terrain-mountain')profile.mountain++;else if(type==='terrain-river')profile.river++;});
- const income=owned.length?profile.plains*2+profile.forest*2+profile.mountain*3+profile.river*2:landCount()*2;
- const food=owned.length?profile.plains*4+profile.forest*3+profile.mountain+profile.river*3:landCount()*3;
+ const cityBonus=tiles.reduce((sum,t,i)=>sum+(tileOwner(t)==='player'&&t.classList.contains('city')?Math.max(0,Number(state.cityLevels[i])||0):0),0);
+ const income=(owned.length?profile.plains*2+profile.forest*2+profile.mountain*3+profile.river*2:landCount()*2)+cityBonus*2;
+ const food=(owned.length?profile.plains*4+profile.forest*3+profile.mountain+profile.river*3:landCount()*3)+cityBonus;
  return {profile,income,food,lands:Math.max(landCount(),owned.length)};
 }
 function troopCount(){const n=Number((($('armyLabel')?.textContent||'28').match(/\d+/)||['28'])[0]);return Math.max(0,(Number.isFinite(n)?n:28)-Math.max(0,Number(state.armyLosses)||0));}
@@ -141,8 +142,8 @@ function renderUI(){
  const raise=$('simRaise');if(raise){const available=troopCount();raise.disabled=!!army||available<1;raise.textContent=army?'Отряд уже на карте':available<1?'Нет доступных воинов':'Сформировать отряд';}
  const march=$('simMarch');march.disabled=!army||army.recalling||state.selected<0||state.selected===army.tile||army.path?.length>0;
  const recall=$('simRecall');recall.disabled=!army||!!army.path?.length;recall.textContent=army?.recalling?'Отряд возвращается домой…':'Отозвать отряд';
- const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected)||state.supply<15;
- const activeSiege=sel&&state.sieges.find(x=>x.tile===state.selected);$('simSelection').textContent=sel?'Цель: '+tileName(sel,state.selected)+' · '+terrainNames[tileTerrain(sel)]+' · '+(activeSiege?'ОСАДА '+Math.min(3,Math.floor(activeSiege.progress))+'/3':tileOwner(sel)==='rival'?'вражеская территория':tileOwner(sel)==='player'?'ваша территория':'нейтральная область'):'Выберите область на карте, чтобы проложить маршрут.';
+ const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected)||state.supply<15||state.treasury<50;develop.textContent=sel?.classList.contains('city')?'Развивать город · 50 монет / 15 снабжения':'Развивать город';
+ const activeSiege=sel&&state.sieges.find(x=>x.tile===state.selected),cityLevel=sel?.classList.contains('city')&&tileOwner(sel)==='player'?' · уровень города '+(Number(state.cityLevels[state.selected])||0):'';$('simSelection').textContent=sel?'Цель: '+tileName(sel,state.selected)+' · '+terrainNames[tileTerrain(sel)]+' · '+(activeSiege?'ОСАДА '+Math.min(3,Math.floor(activeSiege.progress))+'/3':tileOwner(sel)==='rival'?'вражеская территория':tileOwner(sel)==='player'?'ваша территория':'нейтральная область')+cityLevel:'Выберите область на карте, чтобы проложить маршрут.';
  renderLog();renderEconomy();renderArmyPanel();renderBattlePreview(sel);renderDiplomacy();
 }
 function renderBattlePreview(tile){
@@ -280,7 +281,7 @@ function economyTick(){const profile=economicProfile(),lands=profile.lands,taxFa
  state.population=Math.max(0,state.population+Math.max(1,Math.round(state.population*.006)));
  state.development.forEach(x=>x.remaining--);
  const finished=state.development.filter(x=>x.remaining<=0);state.development=state.development.filter(x=>x.remaining>0);
- finished.forEach(x=>{state.population+=100;state.morale=Math.min(100,state.morale+4);if(state.cityDamage[x.tile]){delete state.cityDamage[x.tile];log('Восстановление города «'+tileName(tiles[x.tile],x.tile)+'» завершено: стены и кварталы отстроены.');}else{log('Развитие поселения завершено: '+tileName(tiles[x.tile],x.tile)+'. Население выросло.');}});syncTiles();
+ finished.forEach(x=>{state.population+=100;state.morale=Math.min(100,state.morale+4);state.cityLevels[x.tile]=Math.max(0,Number(state.cityLevels[x.tile])||0)+1;if(state.cityDamage[x.tile]){delete state.cityDamage[x.tile];log('Восстановление города «'+tileName(tiles[x.tile],x.tile)+'» завершено: стены и кварталы отстроены. Уровень города повышен до '+state.cityLevels[x.tile]+'.');}else{log('Развитие поселения завершено: '+tileName(tiles[x.tile],x.tile)+'. Уровень города повышен до '+state.cityLevels[x.tile]+', доход +2 и урожай +1 за сезон.');}});syncTiles();
  if(state.fire){state.fire.turns--;if(state.fire.turns<=0){log('Пожар в поселении потушен.');state.fire=null;}}
  if(!state.fire&&state.turn%7===0){const cities=tiles.map((t,i)=>({t,i})).filter(x=>x.t.classList.contains('city')&&tileOwner(x.t)==='player');if(cities.length){const c=cities[state.turn%cities.length];state.fire={tile:c.i,turns:2};state.supply=Math.max(0,state.supply-8);state.morale=Math.max(0,state.morale-3);log('Пожар в поселении «'+tileName(c.t,c.i)+'»! Пожарные команды работают.');}}
  if(state.supply<25){state.morale=Math.max(0,state.morale-7);if(state.army)applyLosses(state.army,1);log('Недостаток снабжения ослабляет войско.');}
@@ -289,7 +290,7 @@ function economyTick(){const profile=economicProfile(),lands=profile.lands,taxFa
  log('Наступил новый сезон. Погода: '+weather().name+'.');
  renderUI();save();
 }
-function developCity(){const i=state.selected,t=tiles[i];if(!t||!t.classList.contains('city')||tileOwner(t)!=='player'||state.development.some(x=>x.tile===i))return;if(state.supply<15){log('Недостаточно запасов для городских работ.');return;}state.supply-=15;state.development.push({tile:i,remaining:3});log((state.cityDamage[i]?'Начато восстановление разрушенного города «':'Начато развитие поселения «')+tileName(t,i)+'». Завершение через 3 сезона.');renderUI();save();}
+function developCity(){const i=state.selected,t=tiles[i];if(!t||!t.classList.contains('city')||tileOwner(t)!=='player'||state.development.some(x=>x.tile===i))return;if(state.supply<15||state.treasury<50){log('Городские работы требуют 50 монет и 15 единиц снабжения.');return;}state.treasury-=50;state.supply-=15;state.development.push({tile:i,remaining:3});log((state.cityDamage[i]?'Начато восстановление разрушенного города «':'Начато развитие поселения «')+tileName(t,i)+'». Стоимость: 50 монет и 15 снабжения. Завершение через 3 сезона.');renderUI();save();}
 function chooseFormation(value){if(state.army||!FORMATIONS[value])return;state.formation=value;log('Тактика подготовки изменена: '+FORMATIONS[value].name+'.');renderUI();save();}
 function recallArmy(){
  const army=state.army;if(!army||army.path?.length)return;
