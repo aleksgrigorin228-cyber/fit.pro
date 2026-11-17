@@ -114,7 +114,7 @@ function renderUI(){
  const w=weather(),army=state.army;const phases=['Рассвет','День','Закат','Ночь'];
  $('simWeather').textContent=w.name;$('simPhase').textContent=phases[state.phase%4];$('simPopulation').textContent=Math.round(state.population).toLocaleString('ru-RU');$('simSupply').textContent=Math.round(state.supply)+'%';$('simMorale').textContent=Math.round(state.morale)+'%';
  $('simArmy').textContent=army?army.troops+' воинов':'Нет войска';
- const raise=$('simRaise');if(raise){raise.disabled=!!army;raise.textContent=army?'Отряд уже на карте':'Сформировать отряд';}
+ const raise=$('simRaise');if(raise){const available=troopCount();raise.disabled=!!army||available<1;raise.textContent=army?'Отряд уже на карте':available<1?'Нет доступных воинов':'Сформировать отряд';}
  const march=$('simMarch');march.disabled=!army||army.recalling||state.selected<0||state.selected===army.tile||army.path?.length>0;
  const recall=$('simRecall');recall.disabled=!army||!!army.path?.length;recall.textContent=army?.recalling?'Отряд возвращается домой…':'Отозвать отряд';
  const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected)||state.supply<15;
@@ -244,7 +244,8 @@ function train(){state.morale=Math.min(100,state.morale+12);state.supply=Math.ma
 function createArmy(){
  if(state.army){log('Полевой отряд уже находится на карте.');return;}
  const home=tiles.findIndex(t=>tileOwner(t)==='player');if(home<0)return;
- const troops=Math.max(1,Math.min(60,troopCount())),units=makeComposition(troops,state.formation);
+ const available=troopCount();if(available<1){log('Нельзя сформировать отряд: сначала наймите воинов.');renderUI();return;}
+ const troops=Math.min(60,available),units=makeComposition(troops,state.formation);
  state.army={tile:home,homeTile:home,troops,units,path:[],progress:0,target:home,lastSafeTile:null,recalling:false};
  log('Сформирован отряд «'+FORMATIONS[state.formation].name+'»: '+troops+' бойцов. Пехота '+units.infantry+', копейщики '+units.spearmen+', лучники '+units.archers+', кавалерия '+units.cavalry+'.');renderUI();save();
 }
@@ -291,7 +292,7 @@ $('simMarch').addEventListener('click',march);
 $('simTrain').addEventListener('click',train);$('simDevelop').addEventListener('click',developCity);
 $('simTurn').addEventListener('click',advanceSeason);document.querySelectorAll('[data-tax]').forEach(b=>b.addEventListener('click',()=>setTax(b.dataset.tax)));$('simTrade').addEventListener('click',trade);$('simGranary').addEventListener('click',buildGranary);
 const simPanel=$('worldSim');
-const coreArmyLabel=$('armyLabel');if(coreArmyLabel)new MutationObserver(()=>renderArmyPanel()).observe(coreArmyLabel,{childList:true,subtree:true,characterData:true});
+const coreArmyLabel=$('armyLabel');if(coreArmyLabel)new MutationObserver(()=>renderUI()).observe(coreArmyLabel,{childList:true,subtree:true,characterData:true});
 const armyBtn=document.createElement('button');armyBtn.className='btn';armyBtn.id='simRaise';armyBtn.textContent='Сформировать отряд';$('simTrain').before(armyBtn);armyBtn.addEventListener('click',createArmy);$('simRecall').addEventListener('click',recallArmy);
 document.querySelectorAll('[data-formation]').forEach(b=>b.addEventListener('click',()=>chooseFormation(b.dataset.formation)));
 const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});let lastCoreTurn=$('turnLabel')?.textContent||'';if($('turnLabel'))new MutationObserver(()=>{const now=$('turnLabel').textContent;if(now!==lastCoreTurn){lastCoreTurn=now;economyTick();renderUI();save();}}).observe($('turnLabel'),{childList:true,subtree:true,characterData:true});
