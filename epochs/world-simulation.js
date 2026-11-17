@@ -171,16 +171,16 @@ function battle(army,target){
    state.morale=Math.max(0,state.morale-3);return;
  }
  const terrain=tileTerrain(tile),weatherMod=weather().combat,units=normalizeComposition(army.units,army.troops,state.formation),garrison=garrisonFor(tile,owner,state.turn);
- const attack=attackPower(units,terrain,state.morale,weatherMod,garrison.units),defensePower=defensePower(garrison.units,terrain);
+ const attack=attackPower(units,terrain,state.morale,weatherMod,garrison.units),enemyStrength=defensePower(garrison.units,terrain);
  if(owner==='player'){
    army.lastSafeTile=null;
    if(army.recalling){const returned=army.troops;state.army=null;log('Отряд вернулся в столицу. В строю осталось '+returned+' бойцов; теперь можно выбрать новую тактику.');}
    else log('Отряд прибыл в дружественную область.');
    return;
  }
- const losses=Math.min(army.troops,Math.max(1,Math.round(defensePower*.22+army.troops*.07)));
+ const losses=Math.min(army.troops,Math.max(1,Math.round(enemyStrength*.22+army.troops*.07)));
  applyLosses(army,losses);state.morale=Math.max(0,state.morale-(owner==='rival'?13:5));
- if(attack>defensePower&&army.troops>0){
+ if(attack>enemyStrength&&army.troops>0){
    state.captured=[...new Set([...state.captured,target])];tile.classList.remove('owner-rival','owner-neutral');tile.classList.add('owner-player');
    army.lastSafeTile=null;log('Победа! «'+tileName(tile,target)+'» перешла под ваш контроль. Потери: '+losses+'.');
    state.morale=Math.min(100,state.morale+8);state.supply=Math.max(20,state.supply-12);
