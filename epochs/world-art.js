@@ -84,6 +84,11 @@ function city(r,tile,n,time){const {x,y,w,h}=r,s=Math.min(w,h)/54,ruin=tile.clas
  if(!ruin){for(let k=0;k<3;k++){const drift=Math.sin(time*1.35+k*1.6+n)*1.35*s,fade=.19-k*.045;oval(x+w*.62+drift,y+h*.285-k*3.7*s,(1.1+k*.42)*s,(1.05+k*.34)*s,'rgba(54,61,53,'+fade+')');}
    // A tiny forge glow and rising sparks give the settlement a sense of activity.
    const forgeX=x+w*.29,forgeY=y+h*.65;oval(forgeX,forgeY,2.5*s,1.25*s,'#e49a4f99');for(let k=0;k<3;k++){const rise=(time*3.2+k*2.3+n*.07)%7;oval(forgeX+Math.sin(time*2+k)*1.6*s,forgeY-rise*s,.55*s,.8*s,'#edc27a99');}
+ }else{
+   // Ruined districts smoulder until rebuilding removes the ruin state.
+   const smokeX=x+w*.34,smokeY=y+h*.57;
+   for(let k=0;k<4;k++){const rise=(time*.8+k*1.17+n*.09)%5,drift=Math.sin(time*1.25+k+n)*2.2*s;oval(smokeX+drift,smokeY-rise*2.5*s,(1.4+k*.55)*s,(1.2+k*.48)*s,'rgba(43,46,42,'+(.24-k*.035)+')');}
+   for(let k=0;k<5;k++){const phase=(time*2.2+k*1.31+n*.04)%4,ex=x+w*(.25+rnd(n+k)*.45)+Math.sin(time*2.6+k)*s,ey=y+h*(.64+rnd(n+k+4)*.16)-phase*s;oval(ex,ey,.8*s,.9*s,k%2?'#df7440bb':'#efb05d99');}
  }
  if(damage||ruin)for(let k=0;k<(ruin?6:2);k++){const xx=x+w*(.2+rnd(n+k)*.6),yy=y+h*(.35+rnd(n+k+8)*.35);poly([[xx-5*s,yy],[xx,yy-4*s],[xx+5*s,yy+2*s],[xx+2*s,yy+5*s]],'#4a4a40','#292e29',.6*s);ln([[xx-4*s,yy-4*s],[xx+4*s,yy+4*s]],'#2e302b',.7*s);}
  if(tile.classList.contains('under-siege')){
