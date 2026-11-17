@@ -63,14 +63,17 @@
   }
 
   function readMetrics() {
+    let worldState={};try{worldState=JSON.parse(localStorage.getItem('epohi_world_sim_v1')||'null')||{};}catch(_){}
+    const sideCaptured=Array.isArray(worldState.captured)?new Set(worldState.captured).size:0;
+    const permanentLosses=Math.max(0,Number(worldState.armyLosses)||0);
     const techText = $('techCount')?.textContent || '0 / 3';
     const techMatch = techText.match(/(\d+)\s*\/\s*(\d+)/);
     const dateText = $('dateLabel')?.textContent || '';
     const yearMatch = dateText.match(/(\d{3,4})/);
     return {
       turn: numberFrom('turnLabel'),
-      land: numberFrom('landLabel'),
-      army: numberFrom('armyLabel'),
+      land: numberFrom('landLabel')+sideCaptured,
+      army: Math.max(0,numberFrom('armyLabel')-permanentLosses),
       stability: numberFrom('stabilityLabel'),
       prestige: numberFrom('prestigeLabel'),
       tech: techMatch ? Number(techMatch[1]) : 0,
@@ -208,7 +211,7 @@
     if (!grid || !grid.children.length || !$('turnLabel')) return false;
     window.__epohiLegacyReady = true;
 
-    ['resourcebar', 'mapGrid', 'inspector', 'techPanel', 'logList', 'turnLabel', 'dateLabel', 'stabilityLabel', 'armyLabel', 'landLabel', 'prestigeLabel', 'techCount']
+    ['resourcebar', 'mapGrid', 'inspector', 'techPanel', 'logList', 'turnLabel', 'dateLabel', 'stabilityLabel', 'armyLabel', 'landLabel', 'prestigeLabel', 'techCount', 'simArmy', 'simLands']
       .map($)
       .filter(Boolean)
       .forEach((node) => new MutationObserver(queueRefresh).observe(node, {
