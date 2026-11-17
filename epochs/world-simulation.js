@@ -99,7 +99,8 @@ function makeUI(){
  return canvas;
 }
 const canvas=makeUI(),ctx=canvas.getContext('2d');
-function renderEconomy(){const taxNames={low:'Низкие',normal:'Обычные',high:'Высокие'};$('simTreasury').textContent=Math.floor(state.treasury)+' монет';$('simFood').textContent=Math.floor(state.food)+' ед.';$('simTax').textContent=taxNames[state.tax]||taxNames.normal;$('simUnrest').textContent=Math.round(state.unrest)+'%';$('simEconomyStatus').textContent=state.food<20?'Угроза голода':state.unrest>65?'Риск волнений':state.treasury<15?'Казна истощена':state.granary?'Амбар действует':'Держава стабильна';document.querySelectorAll('[data-tax]').forEach(b=>b.classList.toggle('active',b.dataset.tax===state.tax));$('simGranary').textContent=state.granary?'Амбар построен':'Построить амбар';$('simGranary').disabled=state.granary||state.treasury<65;}function renderLog(){const node=$('simLog');if(node)node.innerHTML=state.events.map(x=>'<div class="sim-log-entry">'+escapeHTML(x)+'</div>').join('');}
+function renderEconomy(){const taxNames={low:'Низкие',normal:'Обычные',high:'Высокие'};$('simTreasury').textContent=Math.floor(state.treasury)+' монет';$('simFood').textContent=Math.floor(state.food)+' ед.';$('simTax').textContent=taxNames[state.tax]||taxNames.normal;$('simUnrest').textContent=Math.round(state.unrest)+'%';$('simEconomyStatus').textContent=state.food<20?'Угроза голода':state.unrest>65?'Риск волнений':state.treasury<15?'Казна истощена':state.granary?'Амбар действует':'Держава стабильна';document.querySelectorAll('[data-tax]').forEach(b=>b.classList.toggle('active',b.dataset.tax===state.tax));$('simGranary').textContent=state.granary?'Амбар построен':'Построить амбар';$('simGranary').disabled=state.granary||state.treasury<65;
+ const caravan=$('simTrade');if(caravan){caravan.disabled=state.tradeCooldown>0||state.food<12;caravan.textContent=state.tradeCooldown>0?'Караван в пути: '+state.tradeCooldown+' сезона':'Торговый караван';}}function renderLog(){const node=$('simLog');if(node)node.innerHTML=state.events.map(x=>'<div class="sim-log-entry">'+escapeHTML(x)+'</div>').join('');}
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function updatePoints(){
  syncTiles();const wrap=mapWrap.getBoundingClientRect();
@@ -113,9 +114,10 @@ function renderUI(){
  const w=weather(),army=state.army;const phases=['Рассвет','День','Закат','Ночь'];
  $('simWeather').textContent=w.name;$('simPhase').textContent=phases[state.phase%4];$('simPopulation').textContent=Math.round(state.population).toLocaleString('ru-RU');$('simSupply').textContent=Math.round(state.supply)+'%';$('simMorale').textContent=Math.round(state.morale)+'%';
  $('simArmy').textContent=army?army.troops+' воинов':'Нет войска';
+ const raise=$('simRaise');if(raise){raise.disabled=!!army;raise.textContent=army?'Отряд уже на карте':'Сформировать отряд';}
  const march=$('simMarch');march.disabled=!army||army.recalling||state.selected<0||state.selected===army.tile||army.path?.length>0;
  const recall=$('simRecall');recall.disabled=!army||!!army.path?.length;recall.textContent=army?.recalling?'Отряд возвращается домой…':'Отозвать отряд';
- const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected);
+ const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected)||state.supply<15;
  const activeSiege=sel&&state.sieges.find(x=>x.tile===state.selected);$('simSelection').textContent=sel?'Цель: '+tileName(sel,state.selected)+' · '+terrainNames[tileTerrain(sel)]+' · '+(activeSiege?'ОСАДА '+Math.min(3,Math.floor(activeSiege.progress))+'/3':tileOwner(sel)==='rival'?'вражеская территория':tileOwner(sel)==='player'?'ваша территория':'нейтральная область'):'Выберите область на карте, чтобы проложить маршрут.';
  renderLog();renderEconomy();renderArmyPanel();renderBattlePreview(sel);
 }
