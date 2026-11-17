@@ -6,6 +6,7 @@
  window.__epohiArmyVisuals=true;
  const canvas=document.createElement('canvas');canvas.className='army-canvas';canvas.setAttribute('aria-hidden','true');wrap.appendChild(canvas);
  const ctx=canvas.getContext('2d');if(!ctx)return;
+ const unitAtlas=new Image();unitAtlas.src='assets/units.svg';
  const KEY='epohi_world_sim_v1',reduced=matchMedia('(prefers-reduced-motion: reduce)').matches,mobile=matchMedia('(max-width:700px)').matches;
  let w=1,h=1,dpr=1,tiles=[],centers=[],snapshot=null,visual=null,last=performance.now(),raf=0,elapsed=0,flash=0,flashColor='#e5c47b',clash=0,clashAt=-1,clashColor='#f1d18a',clashType='none',lastEvent='',dust=[];
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),rand=(a,b)=>a+Math.random()*(b-a);
@@ -29,7 +30,14 @@
   }else{visual.tile=a.tile;visual.index=0;visual.progress=0;visual.path=[];}
  }
  function line(x1,y1,x2,y2,color,width,dash){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore()}
- function soldier(x,y,scale,angle,shade,step=0,team='player'){
+ function soldier(x,y,scale,angle,shade,step=0,team='player',unitType=0){
+  if(unitAtlas.complete&&unitAtlas.naturalWidth>0){
+   const gait=Math.sin(step),lift=Math.max(0,gait)*.8,frame=(team==='rival'?2:0)+(unitType%2);
+   ctx.save();ctx.translate(x,y-lift);ctx.rotate(angle);ctx.globalAlpha=1;
+   ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,4,5.5,2.1,0,0,Math.PI*2);ctx.fill();
+   ctx.drawImage(unitAtlas,frame*64,0,64,80,-10,-17,20,25);
+   ctx.restore();return;
+  }
   const gait=Math.sin(step),lift=Math.max(0,gait)*.8;
   ctx.save();ctx.translate(x,y-lift);ctx.rotate(angle);ctx.scale(scale,scale);
   ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,4,5.2,2.1,0,0,Math.PI*2);ctx.fill();
@@ -66,7 +74,7 @@
   for(let i=0;i<count;i++){
    const row=Math.floor(i/cols),col=i%cols,offsetX=(col-1)*6.5*scale+(row%2?2:0),offsetY=(row-1)*5.5*scale;
    const bob=moving?Math.sin(t*10+i*1.7)*1.4:Math.sin(t*2+i)*.35;
-   soldier(x+offsetX,y+offsetY+bob,scale*.9,moving?facing+Math.sin(t*7+i)*.025:0,shade,moving?t*9+i*1.7:0);
+   soldier(x+offsetX,y+offsetY+bob,scale*.9,moving?facing+Math.sin(t*7+i)*.025:0,shade,moving?t*9+i*1.7:0,'player',i%2);
   }
   banner(x-9*scale,y-3*scale,scale,a.phase+t*.8,'#d2ad64');
   ctx.restore();
@@ -92,7 +100,7 @@
    // Rival shield line: small individual figures make a battle readable at map scale.
    ctx.save();ctx.globalAlpha=alpha*.92;
    const guards=[[-8,-8],[0,-12],[8,-8],[0,-3]];
-   guards.forEach(([ox,oy],i)=>{const spread=retreat+(clashType==='defeat'?Math.sin(t*6+i)*1.2:0);soldier(p.x+ox+spread,p.y+oy,Math.max(.42,Math.min(.65,p.size/68)),Math.sin(t*5+i)*.05,'#caa985',t*8+i*1.8,'rival');});
+   guards.forEach(([ox,oy],i)=>{const spread=retreat+(clashType==='defeat'?Math.sin(t*6+i)*1.2:0);soldier(p.x+ox+spread,p.y+oy,Math.max(.42,Math.min(.65,p.size/68)),Math.sin(t*5+i)*.05,'#caa985',t*8+i*1.8,'rival',i%2);});
    banner(p.x+11,p.y-6,.45,t*1.5,'#a64c42');
    ctx.restore();
    // Crossing blade arcs and quick impact sparks.
