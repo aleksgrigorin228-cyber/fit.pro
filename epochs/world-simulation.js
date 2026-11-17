@@ -142,7 +142,7 @@ function economyTick(){const lands=Math.max(1,Number((($('landLabel')?.textConte
  state.population=Math.max(0,state.population+Math.max(1,Math.round(state.population*.006)));
  state.development.forEach(x=>x.remaining--);
  const finished=state.development.filter(x=>x.remaining<=0);state.development=state.development.filter(x=>x.remaining>0);
- finished.forEach(x=>{state.population+=100;state.morale=Math.min(100,state.morale+4);if(state.cityDamage[x.tile]){delete state.cityDamage[x.tile];log('Восстановление города «'+tileName(tiles[x.tile],x.tile)+'» завершено: стены и кварталы отстроены.');}else{log('Развитие поселения завершено: '+tileName(tiles[x.tile],x.tile)+'. Население выросло.');}});
+ finished.forEach(x=>{state.population+=100;state.morale=Math.min(100,state.morale+4);if(state.cityDamage[x.tile]){delete state.cityDamage[x.tile];log('Восстановление города «'+tileName(tiles[x.tile],x.tile)+'» завершено: стены и кварталы отстроены.');}else{log('Развитие поселения завершено: '+tileName(tiles[x.tile],x.tile)+'. Население выросло.');}});syncTiles();
  if(state.fire){state.fire.turns--;if(state.fire.turns<=0){log('Пожар в поселении потушен.');state.fire=null;}}
  if(!state.fire&&state.turn%7===0){const cities=tiles.map((t,i)=>({t,i})).filter(x=>x.t.classList.contains('city')&&tileOwner(x.t)==='player');if(cities.length){const c=cities[state.turn%cities.length];state.fire={tile:c.i,turns:2};state.supply=Math.max(0,state.supply-8);state.morale=Math.max(0,state.morale-3);log('Пожар в поселении «'+tileName(c.t,c.i)+'»! Пожарные команды работают.');}}
  if(state.supply<25){state.morale=Math.max(0,state.morale-7);if(state.army)state.army.troops=Math.max(0,state.army.troops-1);log('Недостаток снабжения ослабляет войско.');}
