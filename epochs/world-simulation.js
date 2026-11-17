@@ -66,7 +66,7 @@ function applyLosses(army,losses){
  army.units=Object.fromEntries(UNIT_TYPES.map((u,i)=>[u.key,Math.max(0,units[u.key]-cuts[i])]));army.troops=compositionTotal(army.units);state.armyLosses=Math.max(0,Number(state.armyLosses)||0)+actual;return actual;
 }
 const terrainNames = { 'terrain-plains':'Равнина','terrain-forest':'Лес','terrain-mountain':'Горы','terrain-river':'Переправа','terrain-water':'Вода' };
-function coreTurnNumber(){const n=Number((($( 'turnLabel')?.textContent||'1').match(/\\d+/)||['1'])[0]);return Number.isFinite(n)?Math.max(1,n):1;}
+function coreTurnNumber(){const n=Number((($('turnLabel')?.textContent||'1').match(/\d+/)||['1'])[0]);return Number.isFinite(n)?Math.max(1,n):1;}
 const fresh = () => ({version:1,coreTurnSeen:coreTurnNumber(),turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,armyLosses:0,formation:'balanced',diplomacy:freshDiplomacy(),events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
 function load(){
   try { const x=JSON.parse(localStorage.getItem(KEY)||'null'); if(!x||x.version!==1)return fresh();
