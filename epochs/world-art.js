@@ -12,6 +12,7 @@ function oval(x,y,rx,ry,col){g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.
 function diamondPath(x,y,w,h){g.beginPath();g.moveTo(x+w*.5,y);g.lineTo(x+w,y+h*.5);g.lineTo(x+w*.5,y+h);g.lineTo(x,y+h*.5);g.closePath();}
 function tree(x,y,s,n){oval(x+s,y+4*s,5*s,2*s,'#18281d88');poly([[x,y-10*s],[x-7*s,y+1*s],[x-3*s,y+1*s],[x-8*s,y+8*s],[x+8*s,y+8*s],[x+3*s,y+1*s],[x+7*s,y+1*s]],rnd(n)>.5?'#426b40':'#315638','#1d3928',s);poly([[x,y-10*s],[x+1*s,y+1*s],[x+5*s,y+1*s]],'#78935b55',null);}
 function peak(x,y,s,n){poly([[x-16*s,y+9*s],[x-5*s,y-14*s],[x+1*s,y-4*s],[x+9*s,y-18*s],[x+18*s,y+9*s]],'#656b61','#3e4941',s);poly([[x-5*s,y-14*s],[x+1*s,y-4*s],[x-3*s,y+1*s],[x-9*s,y-1*s]],'#d0cdb9','#838579',.7*s);poly([[x+9*s,y-18*s],[x+18*s,y+9*s],[x+4*s,y+5*s]],'#d9d4c1','#7c8074',.7*s);}
+function bridge(x,y,w,h,n){const s=Math.min(w,h)/52,ax=x+w*.32,ay=y+h*.68,bx=x+w*.68,by=y+h*.32,dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;ln([[ax,ay+2*s],[bx,by+2*s]],'#172c2d88',8*s);ln([[ax,ay],[bx,by]],'#493827',7*s);ln([[ax,ay-.2*s],[bx,by-.2*s]],'#a78253',5*s);for(let k=0;k<=6;k++){const t=k/6,px=ax+dx*t,py=ay+dy*t;ln([[px-nx*2.2*s,py-ny*2.2*s],[px+nx*2.2*s,py+ny*2.2*s]],'#62482f',.85*s);}for(const side of [-1,1]){const ox=nx*3.4*s*side,oy=ny*3.4*s*side;ln([[ax+ox,ay+oy],[bx+ox,by+oy]],'#5a422d',1.5*s);ln([[ax+ox,ay+oy-.55*s],[bx+ox,by+oy-.55*s]],'#c1a06c',.7*s);for(const t of [0,.18,.82,1]){const px=ax+dx*t+ox,py=ay+dy*t+oy;oval(px,py,1.05*s,1.05*s,'#d2b17a');}}ln([[ax,ay],[bx,by]],'#d3b17a',.45*s);}
 function hut(x,y,s,n,keep=false){const roof=rnd(n+2)>.5?'#87543d':'#684333';poly([[x-7*s,y-2*s],[x+7*s,y-2*s],[x+7*s,y+7*s],[x-7*s,y+7*s]],keep?'#c2b28e':'#b3a17d','#554d3d',s*.7);poly([[x-9*s,y-2*s],[x,y-10*s],[x+9*s,y-2*s],[x+5*s,y+1*s],[x,y-4*s],[x-5*s,y+1*s]],roof,'#4b362b',s*.7);if(keep){ln([[x,y-10*s],[x,y-16*s]],'#e5d6b1',s);poly([[x-3*s,y-16*s],[x+4*s,y-14*s],[x-3*s,y-12*s]],'#b64d3c',null);}}
 function city(r,tile,n,time){const {x,y,w,h}=r,s=Math.min(w,h)/54,ruin=tile.classList.contains('city-ruined'),damage=tile.classList.contains('city-damaged'),stone=ruin?'#68665b':'#b6a783';
  poly([[x+w*.12,y+h*.33],[x+w*.5,y+h*.15],[x+w*.88,y+h*.33],[x+w*.88,y+h*.7],[x+w*.5,y+h*.87],[x+w*.12,y+h*.7]],ruin?'#57574e':'#a99b7b','#4c4c40',s);
@@ -39,6 +40,7 @@ else{
  for(let k=0;k<2;k++){const tx=x+w*(.15+rnd(i+k)*.7),ty=y+h*(.22+rnd(i+k+4)*.55);tree(tx,ty,.3,i+k);}
  if(rnd(i+91)>.53){const mx=x+w*.73,my=y+h*.43,rot=time*.35+i;ln([[mx,my+8],[mx,my-9]],'#6d5236',1.5);poly([[mx-4,my-9],[mx+4,my-9],[mx+3,my-4],[mx-3,my-4]],'#b9a17a','#5a4a36',.7);for(let k=0;k<4;k++){const a=rot+k*Math.PI/2;ln([[mx,my-9],[mx+Math.cos(a)*9,my-9+Math.sin(a)*9]],'#e2d5b2',1.4);}}
 }
+if(type==='terrain-river'&&rnd(i+73)>.32)bridge(x,y,w,h,i);
 if(type!=='terrain-water'&&type!=='terrain-river')ln([[x+w*.02,y+h*.91],[x+w*.35,y+h*.73],[x+w*.67,y+h*.78],[x+w*.98,y+h*.56]],'#c4ab7955',Math.max(1,w*.025));
 if(tile.classList.contains('city'))city(r,tile,i,time);
 if(tile.classList.contains('owner-player')){diamondPath(x+1,y+1,w-2,h-2);g.fillStyle='#d7bb7738';g.fill();g.strokeStyle='#e6c982dd';g.lineWidth=1.5;g.stroke();}
