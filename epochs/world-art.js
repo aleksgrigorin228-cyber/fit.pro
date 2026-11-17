@@ -97,6 +97,18 @@ function city(r,tile,n,time){const {x,y,w,h}=r,s=Math.min(w,h)/54,ruin=tile.clas
    for(const wx of [xx+tw*.2,xx+tw*.8]){oval(wx,base+shake,2.7*s,2.7*s,'#342b22');oval(wx,base+shake,1*s,1*s,'#c29a60');}
    // A low covered ram approaches the gate.
    const rx=x+w*.27,ry=y+h*.72;poly([[rx,ry-3*s],[rx+w*.12,ry-3*s],[rx+w*.14,ry+2*s],[rx,ry+2*s]],'#5e442e','#34291e',.7*s);ln([[rx+2*s,ry-4*s],[rx+w*.13,ry-4*s]],'#b18b59',1.7*s);
+   // A counterweight trebuchet cycles through loading, release and projectile flight.
+   const cx=x+w*.72,cy=y+h*.78,cycle=(time*.58+n*.19)%5.1,launch=cycle>3.15&&cycle<4.2,flight=launch?(cycle-3.15)/1.05:0,armAngle=cycle<3.15?-.95-(cycle/3.15)*.12:-1.07+Math.min(1,(cycle-3.15)/.36)*.72,armLength=w*.16,tipX=cx+Math.cos(armAngle)*armLength,tipY=cy+Math.sin(armAngle)*armLength;
+   poly([[cx-w*.105,cy+2*s],[cx+w*.1,cy+2*s],[cx+w*.085,cy+6*s],[cx-w*.09,cy+6*s]],'#5b422d','#34291f',.7*s);
+   for(const wheelX of [cx-w*.075,cx+w*.07]){oval(wheelX,cy+7*s,3*s,3*s,'#352a20');oval(wheelX,cy+7*s,1.25*s,1.25*s,'#c3a06a');}
+   ln([[cx-w*.065,cy+2*s],[cx-w*.015,cy-13*s]],'#765536',2.4*s);ln([[cx+w*.065,cy+2*s],[cx+w*.01,cy-13*s]],'#765536',2.4*s);
+   ln([[cx-w*.02,cy-2*s],[cx+w*.02,cy-2*s]],'#c9a36b',2*s);
+   ln([[cx,cy-9*s],[tipX,tipY]],'#815d38',3*s);ln([[cx,cy-9*s],[tipX,tipY]],'#d0a16a',.8*s);
+   // Sling cords and a visible stone at the end of the throwing arm.
+   const slingX=tipX-Math.cos(armAngle)*4*s,slingY=tipY-Math.sin(armAngle)*4*s;
+   ln([[tipX,tipY],[slingX-2*s,slingY+3*s],[slingX+2*s,slingY+3*s],[tipX,tipY]],'#cdb783',.7*s);
+   oval(cx+Math.cos(armAngle+Math.PI/2)*3*s,cy-9*s+Math.sin(armAngle+Math.PI/2)*3*s,3.5*s,2.3*s,'#5b4430');
+   if(launch){const px=cx+(x+w*.48-cx)*flight,py=(cy-h*.12)+(y+h*.43-(cy-h*.12))*flight-Math.sin(flight*Math.PI)*h*.25;oval(px,py,2.2*s,1.8*s,'#413c34');oval(px-.7*s,py-.7*s,.7*s,.65*s,'#c3b49a');}
    for(let k=0;k<3;k++){const puff=(time*1.6+k*1.4+n)%4;oval(x+w*(.28+k*.035)+Math.sin(time*1.7+k)*2*s,y+h*.13-puff*2*s,(2+k*.65)*s,(3+k*.8)*s,'rgba(62,65,57,'+(.23-k*.035)+')');}
    for(let k=0;k<3;k++){const spark=(time*4+k*2+n)%6;oval(x+w*.43+Math.sin(time*3+k)*2*s,y+h*.43-spark*s,.7*s,1*s,'#e69b53bb');}
  }
