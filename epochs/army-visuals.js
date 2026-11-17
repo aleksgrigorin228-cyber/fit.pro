@@ -46,7 +46,7 @@
   const weaponSwing=Math.sin(step+Math.PI)*.8;ctx.strokeStyle='#a98b58';ctx.lineWidth=1.15;ctx.beginPath();ctx.moveTo(4,-5.4+weaponSwing);ctx.lineTo(5.2,-14.2+weaponSwing);ctx.stroke();ctx.fillStyle='#d8c594';ctx.beginPath();ctx.moveTo(4.7,-14.2+weaponSwing);ctx.lineTo(5.6,-15.6+weaponSwing);ctx.lineTo(5.9,-14.2+weaponSwing);ctx.closePath();ctx.fill();
   ctx.restore();
 }
- function banner(x,y,t,phase=0){const wave=Math.sin(phase)*2.1*t,wave2=Math.sin(phase+1.1)*1.6*t;ctx.save();ctx.strokeStyle='#d9c58e';ctx.lineWidth=1.45;ctx.beginPath();ctx.moveTo(x,y-22*t);ctx.lineTo(x,y+4*t);ctx.stroke();ctx.fillStyle='#a94a3c';ctx.strokeStyle='#54372e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x+1,y-21*t);ctx.lineTo(x+11*t,y-19*t+wave);ctx.lineTo(x+8*t,y-14*t+wave2);ctx.lineTo(x+1,y-13*t);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#d9b76e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x+2*t,y-18*t);ctx.lineTo(x+7*t,y-17*t+wave*.6);ctx.stroke();ctx.fillStyle='#e2ca89';ctx.beginPath();ctx.arc(x,y+5*t,1.5*t,0,Math.PI*2);ctx.fill();ctx.restore()}
+ function banner(x,y,t,phase=0,color='#b68a43'){const wave=Math.sin(phase)*2.1*t,wave2=Math.sin(phase+1.1)*1.6*t;ctx.save();ctx.strokeStyle='#d9c58e';ctx.lineWidth=1.45;ctx.beginPath();ctx.moveTo(x,y-22*t);ctx.lineTo(x,y+4*t);ctx.stroke();ctx.fillStyle=color;ctx.strokeStyle='#54372e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x+1,y-21*t);ctx.lineTo(x+11*t,y-19*t+wave);ctx.lineTo(x+8*t,y-14*t+wave2);ctx.lineTo(x+1,y-13*t);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#d9b76e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x+2*t,y-18*t);ctx.lineTo(x+7*t,y-17*t+wave*.6);ctx.stroke();ctx.fillStyle='#e2ca89';ctx.beginPath();ctx.arc(x,y+5*t,1.5*t,0,Math.PI*2);ctx.fill();ctx.restore()}
  function spawnDust(x,y){for(let i=0;i<2;i++)dust.push({x:x+rand(-5,5),y:y+rand(0,4),vx:rand(-8,8),vy:rand(-12,-3),life:1,r:rand(1,2.8)})}
  function drawFormation(t,dt,s){
   if(!visual)return;
@@ -54,7 +54,7 @@
   const to=a.index<a.path.length?centers[a.path[a.index]]:null;
   let x=from.x,y=from.y;
   if(to){x+=(to.x-from.x)*a.progress;y+=(to.y-from.y)*a.progress}
-  const scale=clamp(from.size/38,.55,1.25),moving=!!to,shade='#d9cba1';
+  const scale=clamp(from.size/38,.55,1.25),moving=!!to,shade='#d9cba1',facing=to?Math.atan2(to.y-from.y,to.x-from.x)+Math.PI/2:0;
   if(moving&&Math.random()<.22)spawnDust(x,y);
   // Route markers and a restrained marching line.
   if(to){
@@ -66,9 +66,9 @@
   for(let i=0;i<count;i++){
    const row=Math.floor(i/cols),col=i%cols,offsetX=(col-1)*6.5*scale+(row%2?2:0),offsetY=(row-1)*5.5*scale;
    const bob=moving?Math.sin(t*10+i*1.7)*1.4:Math.sin(t*2+i)*.35;
-   soldier(x+offsetX,y+offsetY+bob,scale*.9,moving?Math.sin(t*7+i)*.08:0,shade,moving?t*9+i*1.7:0);
+   soldier(x+offsetX,y+offsetY+bob,scale*.9,moving?facing+Math.sin(t*7+i)*.025:0,shade,moving?t*9+i*1.7:0);
   }
-  banner(x-9*scale,y-3*scale,scale,a.phase+t*.8);
+  banner(x-9*scale,y-3*scale,scale,a.phase+t*.8,'#d2ad64');
   ctx.restore();
   // Command aura and troop count, only visible when zooming/hovering or while moving.
   if(moving||grid.querySelector('.tile.selected')){
@@ -93,6 +93,7 @@
    ctx.save();ctx.globalAlpha=alpha*.92;
    const guards=[[-8,-8],[0,-12],[8,-8],[0,-3]];
    guards.forEach(([ox,oy],i)=>{const spread=retreat+(clashType==='defeat'?Math.sin(t*6+i)*1.2:0);soldier(p.x+ox+spread,p.y+oy,Math.max(.42,Math.min(.65,p.size/68)),Math.sin(t*5+i)*.05,'#caa985',t*8+i*1.8,'rival');});
+   banner(p.x+11,p.y-6,.45,t*1.5,'#a64c42');
    ctx.restore();
    // Crossing blade arcs and quick impact sparks.
    ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=alpha;ctx.strokeStyle=clashColor;ctx.lineWidth=2;ctx.lineCap='round';ctx.shadowColor=clashColor;ctx.shadowBlur=8;
