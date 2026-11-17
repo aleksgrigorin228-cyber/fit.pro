@@ -4,6 +4,8 @@
 const wrap=document.querySelector('.map-wrap'),grid=document.getElementById('mapGrid');if(!wrap||!grid)return;
 const cv=document.createElement('canvas');cv.className='world-art-canvas';cv.setAttribute('aria-hidden','true');wrap.insertBefore(cv,grid);
 const g=cv.getContext('2d'),reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const settlementAtlas=new Image();let settlementReady=false;settlementAtlas.onload=()=>{settlementReady=true;};settlementAtlas.onerror=()=>{settlementReady=false;};settlementAtlas.src='assets/settlements.svg';
+function drawSettlementSprite(index,x,y,width,height,rotation=0){if(!settlementReady)return false;const col=index%4,row=Math.floor(index/4);g.save();g.translate(x,y);g.rotate(rotation);g.drawImage(settlementAtlas,col*96,row*96,96,96,-width/2,-height/2,width,height);g.restore();return true;}
 let tiles=[],rects=[],W=1,H=1,D=1,raf=0,last=0;
 const rnd=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)};
 function poly(p,fill,stroke='#354438',sw=1){g.beginPath();p.forEach((v,i)=>i?g.lineTo(v[0],v[1]):g.moveTo(v[0],v[1]));g.closePath();g.fillStyle=fill;g.fill();if(stroke){g.strokeStyle=stroke;g.lineWidth=sw;g.stroke();}}
@@ -12,6 +14,7 @@ function oval(x,y,rx,ry,col){g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.
 function diamondPath(x,y,w,h){g.beginPath();g.moveTo(x+w*.5,y);g.lineTo(x+w,y+h*.5);g.lineTo(x+w*.5,y+h);g.lineTo(x,y+h*.5);g.closePath();}
 function tree(x,y,s,n,time=0){
  const sway=Math.sin(time*1.25+n*.31)*.8*s,kind=Math.floor(rnd(n+11)*3),greens=['#315638','#3e6840','#496f43'],base=greens[kind];
+ if(drawSettlementSprite(rnd(n+11)>.5?6:7,x,y,30*s,34*s,Math.sin(time*1.25+n*.31)*.035))return;
  oval(x+s,y+4*s,6*s,2.1*s,'#18281d88');
  if(kind===0){
   poly([[x+sway,y-11*s],[x-7*s+sway*.4,y+1*s],[x-3*s+sway*.5,y+1*s],[x-8*s+sway*.25,y+8*s],[x+8*s+sway*.25,y+8*s],[x+3*s+sway*.5,y+1*s],[x+7*s+sway*.4,y+1*s]],base,'#1d3928',s);
@@ -28,7 +31,7 @@ function tree(x,y,s,n,time=0){
 }
 function peak(x,y,s,n){poly([[x-16*s,y+9*s],[x-5*s,y-14*s],[x+1*s,y-4*s],[x+9*s,y-18*s],[x+18*s,y+9*s]],'#656b61','#3e4941',s);poly([[x-5*s,y-14*s],[x+1*s,y-4*s],[x-3*s,y+1*s],[x-9*s,y-1*s]],'#d0cdb9','#838579',.7*s);poly([[x+9*s,y-18*s],[x+18*s,y+9*s],[x+4*s,y+5*s]],'#d9d4c1','#7c8074',.7*s);}
 function bridge(x,y,w,h,n){const s=Math.min(w,h)/52,ax=x+w*.32,ay=y+h*.68,bx=x+w*.68,by=y+h*.32,dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;ln([[ax,ay+2*s],[bx,by+2*s]],'#172c2d88',8*s);ln([[ax,ay],[bx,by]],'#493827',7*s);ln([[ax,ay-.2*s],[bx,by-.2*s]],'#a78253',5*s);for(let k=0;k<=6;k++){const t=k/6,px=ax+dx*t,py=ay+dy*t;ln([[px-nx*2.2*s,py-ny*2.2*s],[px+nx*2.2*s,py+ny*2.2*s]],'#62482f',.85*s);}for(const side of [-1,1]){const ox=nx*3.4*s*side,oy=ny*3.4*s*side;ln([[ax+ox,ay+oy],[bx+ox,by+oy]],'#5a422d',1.5*s);ln([[ax+ox,ay+oy-.55*s],[bx+ox,by+oy-.55*s]],'#c1a06c',.7*s);for(const t of [0,.18,.82,1]){const px=ax+dx*t+ox,py=ay+dy*t+oy;oval(px,py,1.05*s,1.05*s,'#d2b17a');}}ln([[ax,ay],[bx,by]],'#d3b17a',.45*s);}
-function hut(x,y,s,n,keep=false){const roof=rnd(n+2)>.5?'#87543d':'#684333';poly([[x-7*s,y-2*s],[x+7*s,y-2*s],[x+7*s,y+7*s],[x-7*s,y+7*s]],keep?'#c2b28e':'#b3a17d','#554d3d',s*.7);poly([[x-9*s,y-2*s],[x,y-10*s],[x+9*s,y-2*s],[x+5*s,y+1*s],[x,y-4*s],[x-5*s,y+1*s]],roof,'#4b362b',s*.7);if(keep){ln([[x,y-10*s],[x,y-16*s]],'#e5d6b1',s);poly([[x-3*s,y-16*s],[x+4*s,y-14*s],[x-3*s,y-12*s]],'#b64d3c',null);}}
+function hut(x,y,s,n,keep=false){if(drawSettlementSprite(keep?0:1,x,y,36*s,38*s))return;const roof=rnd(n+2)>.5?'#87543d':'#684333';poly([[x-7*s,y-2*s],[x+7*s,y-2*s],[x+7*s,y+7*s],[x-7*s,y+7*s]],keep?'#c2b28e':'#b3a17d','#554d3d',s*.7);poly([[x-9*s,y-2*s],[x,y-10*s],[x+9*s,y-2*s],[x+5*s,y+1*s],[x,y-4*s],[x-5*s,y+1*s]],roof,'#4b362b',s*.7);if(keep){ln([[x,y-10*s],[x,y-16*s]],'#e5d6b1',s);poly([[x-3*s,y-16*s],[x+4*s,y-14*s],[x-3*s,y-12*s]],'#b64d3c',null);}}
 function roadLinked(a,b){
  const low=Math.min(a,b),high=Math.max(a,b),sameRow=Math.floor(low/9)===Math.floor(high/9),col=low%9,row=Math.floor(low/9),chance=rnd(low*31+high*17+9);
  return sameRow?(row%2===0||chance>.79):(col%3===1||chance>.84);
@@ -64,7 +67,7 @@ function city(r,tile,n,time){const {x,y,w,h}=r,s=Math.min(w,h)/54,ruin=tile.clas
   ln([[x+w*.5,y+h*.76],[x+w*.5,y+h*.91]],'#c7aa75',1.8*s);
   for(const ox of [-1,1]){const tx=x+w*(.5+ox*.09),ty=y+h*.7,glow=.55+.35*Math.sin(time*5+n+ox);ln([[tx,ty+3*s],[tx,ty-2*s]],'#60442c',.9*s);oval(tx,ty-3*s,1.4*s,2*s,'rgba(244,164,76,'+glow+')');}
  }
- for(const [tx,ty] of [[.17,.34],[.83,.34],[.17,.69],[.83,.69]]){poly([[x+w*tx-3*s,y+h*ty-2*s],[x+w*tx+3*s,y+h*ty-2*s],[x+w*tx+3*s,y+h*ty+5*s],[x+w*tx-3*s,y+h*ty+5*s]],stone,'#4d493c',.7*s);poly([[x+w*tx-4*s,y+h*ty-2*s],[x+w*tx,y+h*ty-7*s],[x+w*tx+4*s,y+h*ty-2*s]],'#704a37','#40352b',.7*s);}
+ for(const [tx,ty] of [[.17,.34],[.83,.34],[.17,.69],[.83,.69]]){if(!drawSettlementSprite(4,x+w*tx,y+h*ty,17*s,23*s)){poly([[x+w*tx-3*s,y+h*ty-2*s],[x+w*tx+3*s,y+h*ty-2*s],[x+w*tx+3*s,y+h*ty+5*s],[x+w*tx-3*s,y+h*ty+5*s]],stone,'#4d493c',.7*s);poly([[x+w*tx-4*s,y+h*ty-2*s],[x+w*tx,y+h*ty-7*s],[x+w*tx+4*s,y+h*ty-2*s]],'#704a37','#40352b',.7*s);}}
  hut(x+w*.5,y+h*.43,1.25*s,n,true);hut(x+w*.3,y+h*.55,.8*s,n+3);hut(x+w*.68,y+h*.56,.82*s,n+5);hut(x+w*.42,y+h*.69,.68*s,n+7);
  // Roof ridges, timber braces and glowing windows distinguish the inner quarters.
  for(const [px,py,sz] of [[.3,.55,.8],[.68,.56,.82],[.42,.69,.68]]){
@@ -73,13 +76,12 @@ function city(r,tile,n,time){const {x,y,w,h}=r,s=Math.min(w,h)/54,ruin=tile.clas
   oval(x+w*(px-.025),y+h*(py+.025),.8*s,1.15*s,'rgba(246,196,113,'+light+')');
  }
  poly([[x+w*.59,y+h*.42],[x+w*.65,y+h*.39],[x+w*.65,y+h*.51],[x+w*.59,y+h*.54]],'#c9b993','#655d49',.7*s);
- poly([[x+w*.58,y+h*.42],[x+w*.62,y+h*.34],[x+w*.66,y+h*.42]],'#765342','#45352b',.6*s);ln([[x+w*.62,y+h*.34],[x+w*.62,y+h*.29]],'#dfd1a9',.9*s);
+ if(!drawSettlementSprite(2,x+w*.62,y+h*.43,19*s,27*s)){poly([[x+w*.58,y+h*.42],[x+w*.62,y+h*.34],[x+w*.66,y+h*.42]],'#765342','#45352b',.6*s);ln([[x+w*.62,y+h*.34],[x+w*.62,y+h*.29]],'#dfd1a9',.9*s);}
  poly([[x+w*.45,y+h*.68],[x+w*.55,y+h*.68],[x+w*.55,y+h*.84],[x+w*.45,y+h*.84]],'#302e27',null);ln([[x+w*.5,y+h*.83],[x+w*.5,y+h*.98]],'#c4a977',2*s);
  const fx=x+w*.5,fy=y+h*.22,flutter=Math.sin(time*2.4+n)*2*s;ln([[fx,fy-5*s],[fx,fy+7*s]],'#e2d4ae',s);poly([[fx,fy-5*s],[fx+9*s,fy-3*s+flutter],[fx,fy+flutter]],tile.classList.contains('owner-rival')?'#a64c42':'#b68a43','#493b2b',.55*s);
  poly([[x+w*.24,y+h*.61],[x+w*.33,y+h*.59],[x+w*.34,y+h*.63],[x+w*.25,y+h*.65]],'#a44e3e','#55382d',.6*s);
  // Striped awning and market stalls.
- for(let k=0;k<4;k++){const ax=x+w*(.245+k*.022),ay=y+h*.61;ln([[ax,ay],[ax+w*.018,ay-h*.008]],k%2?'#e2c98d':'#70473a',.75*s);}
- for(let k=0;k<3;k++){const bx=x+w*(.25+k*.038),by=y+h*.67;poly([[bx,by],[bx+2.5*s,by-1*s],[bx+2.5*s,by+1.2*s],[bx,by+2*s]],'#806b45','#423a2b',.4*s);}ln([[x+w*.25,y+h*.65],[x+w*.25,y+h*.69]],'#5a4835',s);ln([[x+w*.33,y+h*.63],[x+w*.33,y+h*.68]],'#5a4835',s);
+ if(!drawSettlementSprite(3,x+w*.29,y+h*.64,30*s,23*s)){for(let k=0;k<4;k++){const ax=x+w*(.245+k*.022),ay=y+h*.61;ln([[ax,ay],[ax+w*.018,ay-h*.008]],k%2?'#e2c98d':'#70473a',.75*s);}for(let k=0;k<3;k++){const bx=x+w*(.25+k*.038),by=y+h*.67;poly([[bx,by],[bx+2.5*s,by-1*s],[bx+2.5*s,by+1.2*s],[bx,by+2*s]],'#806b45','#423a2b',.4*s);}}ln([[x+w*.25,y+h*.65],[x+w*.25,y+h*.69]],'#5a4835',s);ln([[x+w*.33,y+h*.63],[x+w*.33,y+h*.68]],'#5a4835',s);
  // Working chimneys: slow, layered smoke remains visible without obscuring the skyline.
  if(!ruin){for(let k=0;k<3;k++){const drift=Math.sin(time*1.35+k*1.6+n)*1.35*s,fade=.19-k*.045;oval(x+w*.62+drift,y+h*.285-k*3.7*s,(1.1+k*.42)*s,(1.05+k*.34)*s,'rgba(54,61,53,'+fade+')');}
    // A tiny forge glow and rising sparks give the settlement a sense of activity.
@@ -127,7 +129,7 @@ else if(type==='terrain-river'||type==='terrain-water'){g.beginPath();g.moveTo(x
 else{
  for(let k=0;k<5;k++){const yy=y+h*(.2+k*.12),sway=Math.sin(time*1.7+k*.82+i*.3)*Math.min(1.15,w*.018);ln([[x+w*.08,yy],[x+w*.46,yy+h*.065+sway]],'#d8c58b77',1.1);ln([[x+w*.1,yy+2],[x+w*.45,yy+h*.065+2+sway]],'#344d3266',.55);}
  for(let k=0;k<2;k++){const tx=x+w*(.15+rnd(i+k)*.7),ty=y+h*(.22+rnd(i+k+4)*.55);tree(tx,ty,.3,i+k,time);}
- if(rnd(i+91)>.53){const mx=x+w*.73,my=y+h*.43,rot=time*.35+i;ln([[mx,my+8],[mx,my-9]],'#6d5236',1.5);poly([[mx-4,my-9],[mx+4,my-9],[mx+3,my-4],[mx-3,my-4]],'#b9a17a','#5a4a36',.7);for(let k=0;k<4;k++){const a=rot+k*Math.PI/2;ln([[mx,my-9],[mx+Math.cos(a)*9,my-9+Math.sin(a)*9]],'#e2d5b2',1.4);}}
+ if(rnd(i+91)>.53){const mx=x+w*.73,my=y+h*.43,rot=time*.35+i;if(!drawSettlementSprite(5,mx,my,22,29)){ln([[mx,my+8],[mx,my-9]],'#6d5236',1.5);poly([[mx-4,my-9],[mx+4,my-9],[mx+3,my-4],[mx-3,my-4]],'#b9a17a','#5a4a36',.7);}for(let k=0;k<4;k++){const a=rot+k*Math.PI/2;ln([[mx,my-9],[mx+Math.cos(a)*9,my-9+Math.sin(a)*9]],'#e2d5b2',1.4);}}
 }
 if(type==='terrain-river'&&((i>=9&&roadLinked(i,i-9))||(i+9<tiles.length&&roadLinked(i,i+9))))bridge(x,y,w,h,i);
 drawRoads(x,y,w,h,i);
