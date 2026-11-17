@@ -66,12 +66,14 @@ function applyLosses(army,losses){
  army.units=Object.fromEntries(UNIT_TYPES.map((u,i)=>[u.key,Math.max(0,units[u.key]-cuts[i])]));army.troops=compositionTotal(army.units);state.armyLosses=Math.max(0,Number(state.armyLosses)||0)+actual;return actual;
 }
 const terrainNames = { 'terrain-plains':'Равнина','terrain-forest':'Лес','terrain-mountain':'Горы','terrain-river':'Переправа','terrain-water':'Вода' };
-const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,armyLosses:0,formation:'balanced',diplomacy:freshDiplomacy(),events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
+function coreTurnNumber(){const n=Number((($( 'turnLabel')?.textContent||'1').match(/\\d+/)||['1'])[0]);return Number.isFinite(n)?Math.max(1,n):1;}
+const fresh = () => ({version:1,coreTurnSeen:coreTurnNumber(),turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,armyLosses:0,formation:'balanced',diplomacy:freshDiplomacy(),events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
 function load(){
   try { const x=JSON.parse(localStorage.getItem(KEY)||'null'); if(!x||x.version!==1)return fresh();
     const saved={...fresh(),...x,events:Array.isArray(x.events)?x.events.slice(0,12):[],captured:Array.isArray(x.captured)?x.captured:[],sieges:Array.isArray(x.sieges)?x.sieges:[],cityDamage:x.cityDamage&&typeof x.cityDamage==='object'?x.cityDamage:{}};
     if(!FORMATIONS[saved.formation])saved.formation='balanced';
     saved.armyLosses=Math.max(0,Math.floor(Number(saved.armyLosses)||0));
+    saved.coreTurnSeen=Math.max(1,Math.floor(Number(saved.coreTurnSeen)||coreTurnNumber()));
     const diplomacy=freshDiplomacy();saved.diplomacy={...diplomacy,...(saved.diplomacy||{})};
     saved.diplomacy.relation=Math.max(-100,Math.min(100,Number(saved.diplomacy.relation)||0));
     ['tradeTurns','nonAggressionTurns','allianceTurns'].forEach(k=>saved.diplomacy[k]=Math.max(0,Math.floor(Number(saved.diplomacy[k])||0)));
@@ -81,6 +83,9 @@ function load(){
   } catch(_){return fresh();}
 }
 let state=load(), tiles=[], points=[], lastFrame=0, raf=0, particles=[];
+const bootCoreTurn=coreTurnNumber();
+if(bootCoreTurn<state.coreTurnSeen){state=fresh();state.coreTurnSeen=bootCoreTurn;try{localStorage.setItem(KEY,JSON.stringify(state));}catch(_){}}
+else state.coreTurnSeen=bootCoreTurn;
 const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const weather=()=>weatherTypes[state.weather%weatherTypes.length];
 function log(message){state.events.unshift(message);state.events=state.events.slice(0,12);save();renderLog();}
@@ -341,7 +346,7 @@ const simPanel=$('worldSim');
 const coreArmyLabel=$('armyLabel');if(coreArmyLabel)new MutationObserver(()=>renderUI()).observe(coreArmyLabel,{childList:true,subtree:true,characterData:true});
 const armyBtn=document.createElement('button');armyBtn.className='btn';armyBtn.id='simRaise';armyBtn.textContent='Сформировать отряд';$('simTrain').before(armyBtn);armyBtn.addEventListener('click',createArmy);$('simRecall').addEventListener('click',recallArmy);
 document.querySelectorAll('[data-formation]').forEach(b=>b.addEventListener('click',()=>chooseFormation(b.dataset.formation)));
-const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});let lastCoreTurn=$('turnLabel')?.textContent||'';if($('turnLabel'))new MutationObserver(()=>{const now=$('turnLabel').textContent;if(now!==lastCoreTurn){lastCoreTurn=now;advanceSeason();}}).observe($('turnLabel'),{childList:true,subtree:true,characterData:true});
+const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});let lastCoreTurn=$('turnLabel')?.textContent||'';if($('turnLabel'))new MutationObserver(()=>{const now=$('turnLabel').textContent;if(now!==lastCoreTurn){lastCoreTurn=now;const current=coreTurnNumber();if(current<state.coreTurnSeen){state=fresh();state.coreTurnSeen=current;syncTiles();renderUI();save();log('Новая кампания началась. Дипломатия, договоры и полевые армии сброшены.');}else{state.coreTurnSeen=current;advanceSeason();}}}).observe($('turnLabel'),{childList:true,subtree:true,characterData:true});
 window.addEventListener('resize',updatePoints,{passive:true});
 syncTiles();
 if(state.army&&(!tiles[state.army.tile]))state.army=null;
