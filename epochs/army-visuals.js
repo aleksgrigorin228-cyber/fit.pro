@@ -29,8 +29,23 @@
   }else{visual.tile=a.tile;visual.index=0;visual.progress=0;visual.path=[];}
  }
  function line(x1,y1,x2,y2,color,width,dash){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore()}
- function soldier(x,y,scale,angle,shade){ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(scale,scale);ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(0,3,3.8,1.8,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=shade;ctx.beginPath();ctx.arc(0,-4,1.8,0,Math.PI*2);ctx.fill();ctx.fillRect(-1.6,-2.5,3.2,5);ctx.strokeStyle='#29312a';ctx.lineWidth=1.2;ctx.beginPath();ctx.moveTo(-.7,1);ctx.lineTo(-1.8,4);ctx.moveTo(.7,1);ctx.lineTo(1.8,4);ctx.stroke();ctx.restore()}
- function banner(x,y,t){ctx.save();ctx.strokeStyle='#d9c58e';ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(x,y-22*t);ctx.lineTo(x,y+4*t);ctx.stroke();ctx.fillStyle='#b64e3e';ctx.beginPath();ctx.moveTo(x+1,y-21*t);ctx.lineTo(x+12*t,y-18*t);ctx.lineTo(x+1,y-14*t);ctx.closePath();ctx.fill();ctx.fillStyle='#e2ca89';ctx.beginPath();ctx.arc(x,y+5*t,1.5*t,0,Math.PI*2);ctx.fill();ctx.restore()}
+ function soldier(x,y,scale,angle,shade){
+  ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(scale,scale);
+  ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,4,5.2,2.1,0,0,Math.PI*2);ctx.fill();
+  ctx.lineCap='round';ctx.strokeStyle='#493b2d';ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(-1.2,-.5);ctx.lineTo(-2.1,3.5);ctx.moveTo(1.1,-.5);ctx.lineTo(2.2,3.5);ctx.stroke();
+  ctx.fillStyle='#5f4b36';ctx.fillRect(-2.3,2.7,2.2,1.1);ctx.fillRect(.9,2.7,2.2,1.1);
+  ctx.fillStyle='#465941';ctx.beginPath();ctx.moveTo(-2.6,-6);ctx.lineTo(-4,-1);ctx.lineTo(-2.7,1.5);ctx.lineTo(2.9,1.5);ctx.lineTo(4,-1);ctx.lineTo(2.5,-6);ctx.closePath();ctx.fill();
+  ctx.fillStyle=shade;ctx.beginPath();ctx.moveTo(-2.1,-6.5);ctx.lineTo(2.1,-6.5);ctx.lineTo(3.1,-.7);ctx.lineTo(2,1);ctx.lineTo(-2,1);ctx.lineTo(-3.1,-.7);ctx.closePath();ctx.fill();ctx.strokeStyle='#554631';ctx.lineWidth=.65;ctx.stroke();
+  ctx.fillStyle='#c8ac70';ctx.fillRect(-2.7,-3.1,5.4,.8);ctx.fillStyle='#55422e';ctx.fillRect(-.65,-3.35,1.3,1.3);
+  ctx.strokeStyle='#bca16e';ctx.lineWidth=1.25;ctx.beginPath();ctx.moveTo(-2.4,-5.4);ctx.lineTo(-4.1,-1.1);ctx.moveTo(2.4,-5.4);ctx.lineTo(4.1,-1.1);ctx.stroke();
+  ctx.fillStyle='#6f4632';ctx.beginPath();ctx.roundRect(-5.1,-5.2,2.5,6.3,.7);ctx.fill();ctx.strokeStyle='#d0b477';ctx.lineWidth=.7;ctx.stroke();ctx.beginPath();ctx.moveTo(-3.85,-4.4);ctx.lineTo(-3.85,.2);ctx.stroke();
+  ctx.fillStyle='#d8bd91';ctx.beginPath();ctx.arc(0,-8.4,2.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#554638';ctx.beginPath();ctx.arc(0,-9,2.25,Math.PI,Math.PI*2);ctx.lineTo(2.2,-8.3);ctx.lineTo(-2.2,-8.3);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#c3a568';ctx.beginPath();ctx.moveTo(-2.3,-9.3);ctx.lineTo(0,-11.2);ctx.lineTo(2.3,-9.3);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#a98b58';ctx.lineWidth=1.15;ctx.beginPath();ctx.moveTo(4,-5.4);ctx.lineTo(5.2,-14.2);ctx.stroke();ctx.fillStyle='#d8c594';ctx.beginPath();ctx.moveTo(4.7,-14.2);ctx.lineTo(5.6,-15.6);ctx.lineTo(5.9,-14.2);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+ function banner(x,y,t,phase=0){const wave=Math.sin(phase)*2.1*t,wave2=Math.sin(phase+1.1)*1.6*t;ctx.save();ctx.strokeStyle='#d9c58e';ctx.lineWidth=1.45;ctx.beginPath();ctx.moveTo(x,y-22*t);ctx.lineTo(x,y+4*t);ctx.stroke();ctx.fillStyle='#a94a3c';ctx.strokeStyle='#54372e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x+1,y-21*t);ctx.lineTo(x+11*t,y-19*t+wave);ctx.lineTo(x+8*t,y-14*t+wave2);ctx.lineTo(x+1,y-13*t);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#d9b76e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x+2*t,y-18*t);ctx.lineTo(x+7*t,y-17*t+wave*.6);ctx.stroke();ctx.fillStyle='#e2ca89';ctx.beginPath();ctx.arc(x,y+5*t,1.5*t,0,Math.PI*2);ctx.fill();ctx.restore()}
  function spawnDust(x,y){for(let i=0;i<2;i++)dust.push({x:x+rand(-5,5),y:y+rand(0,4),vx:rand(-8,8),vy:rand(-12,-3),life:1,r:rand(1,2.8)})}
  function drawFormation(t,dt,s){
   if(!visual)return;
@@ -46,13 +61,13 @@
   }
   // Soft ground shadow and formation footprint.
   ctx.save();ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(x,y+5*scale,13*scale,6*scale,0,0,Math.PI*2);ctx.fill();
-  const count=clamp(Math.round(a.troops/7),3,9),cols=3;
+  const count=clamp(Math.round(a.troops/5),4,12),cols=3;
   for(let i=0;i<count;i++){
    const row=Math.floor(i/cols),col=i%cols,offsetX=(col-1)*6.5*scale+(row%2?2:0),offsetY=(row-1)*5.5*scale;
    const bob=moving?Math.sin(t*10+i*1.7)*1.4:Math.sin(t*2+i)*.35;
    soldier(x+offsetX,y+offsetY+bob,scale*.9, moving?Math.sin(t*7+i)*.08:0,shade);
   }
-  banner(x-9*scale,y-3*scale,scale);
+  banner(x-9*scale,y-3*scale,scale,a.phase+t*.8);
   ctx.restore();
   // Command aura and troop count, only visible when zooming/hovering or while moving.
   if(moving||grid.querySelector('.tile.selected')){

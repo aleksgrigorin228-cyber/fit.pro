@@ -225,3 +225,18 @@ body:after{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;opac
 .map-grid .tile .tile-name{font-size:clamp(7px,.72vw,10px);padding:2px 5px;border-radius:4px;background:#10170fc9;color:#f2e7c8;text-shadow:0 1px 3px #000;letter-spacing:.02em}
 .map-grid .tile .owner-dot{z-index:2;box-shadow:0 0 0 2px #142018aa,0 0 8px #fff5}
 @media(max-width:700px){.map-grid .tile .tile-name{font-size:7px;padding:1px 3px}}
+
+/* EPOHI 1.0 — connected isometric world */
+.map-grid.isometric-map{display:block!important;position:relative;width:100%;aspect-ratio:16/9;max-height:620px;gap:0;overflow:visible;isolation:isolate}
+.map-grid.isometric-map .tile{position:absolute;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:0;padding:0;border:0;border-radius:0;background:transparent!important;box-shadow:none!important;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);transform-origin:center;z-index:1;transition:filter .16s,transform .16s}
+.map-grid.isometric-map .tile:hover{filter:brightness(1.2) saturate(1.08);transform:scale(1.035);z-index:8}
+.map-grid.isometric-map .tile.selected{z-index:9;outline:none;filter:brightness(1.2) drop-shadow(0 0 3px #f0d48b)}
+.map-grid.isometric-map .tile .terrain-icon{display:none!important}
+.map-grid.isometric-map .tile .tile-name{position:absolute;left:8%;right:8%;bottom:13%;max-width:84%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;z-index:3;font-size:clamp(6px,.68vw,9px);padding:2px 4px;border-radius:4px;background:#10170fc4;color:#f2e7c8;text-align:center;text-shadow:0 1px 3px #000;letter-spacing:.01em}
+.map-grid.isometric-map .tile .owner-dot{top:23%;right:23%;width:6px;height:6px;z-index:3;box-shadow:0 0 0 2px #142018aa,0 0 8px #fff5}
+.map-grid.isometric-map .tile.city:before{display:none}
+.map-grid.isometric-map .tile.frontier{border:0}
+.map-grid.isometric-map .tile.owner-rival:before{inset:24%;border-radius:50%;z-index:2}
+.map-grid.isometric-map .tile.owner-rival.city:before{display:block}
+.map-grid.isometric-map .tile.owner-player.city{filter:drop-shadow(0 0 4px #d7c17e44)}
+@media(max-width:700px){.map-grid.isometric-map{max-height:none}.map-grid.isometric-map .tile .tile-name{font-size:6px;padding:1px 2px;bottom:12%}.map-grid.isometric-map .tile .owner-dot{width:5px;height:5px}}
