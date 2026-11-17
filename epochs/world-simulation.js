@@ -85,7 +85,7 @@ function load(){
 let state=load(), tiles=[], points=[], lastFrame=0, raf=0, particles=[];
 const bootCoreTurn=coreTurnNumber();
 if(bootCoreTurn<state.coreTurnSeen){state=fresh();state.coreTurnSeen=bootCoreTurn;try{localStorage.setItem(KEY,JSON.stringify(state));}catch(_){}}
-else state.coreTurnSeen=bootCoreTurn;
+else{state.coreTurnSeen=bootCoreTurn;state.turn=Math.max(state.turn,bootCoreTurn);}
 const reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const weather=()=>weatherTypes[state.weather%weatherTypes.length];
 function log(message){state.events.unshift(message);state.events=state.events.slice(0,12);save();renderLog();}
