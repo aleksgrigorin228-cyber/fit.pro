@@ -1,6 +1,6 @@
 # ЭПОХИ — Последний правитель
 
-Standalone browser strategy game. Open `index.html` in a modern browser; no build step or external dependencies are required.
+Standalone browser strategy game. Open `index.html` through a static web server in a modern browser. The 2D game remains available as a fallback; the interactive 3D layer loads Three.js 0.187.0 from jsDelivr.
 
 ## Gameplay
 - Develop food, timber, stone, gold and research.
@@ -18,10 +18,12 @@ Standalone browser strategy game. Open `index.html` in a modern browser; no buil
 
 ## Project files
 - `index.html` — app markup
-- `style.css` — responsive interface and atlas gallery
+- `style.css` — responsive interface, atlas gallery and 3D viewport
+- `three-world.js` — live 3D terrain, settlements, flags, weather, animated troops and siege engines
+- Three.js 0.187.0 — external ES module dependency, distributed under the MIT license
 - `game-loader.js` — compressed game engine loader
 - `game-expansion.js` — achievements, objectives and ruler's chronicle
 - `campaign-archive.js` — historical dossiers, event encyclopedia and atlas gallery
 - `atlas/map-01.svg` … `atlas/map-30.svg` — 30 cartographic illustrations (about 30 MB total)
 
-Version 0.4.0 — Historical Atlas.
+Version 1.1.0 — Interactive 3D world.
