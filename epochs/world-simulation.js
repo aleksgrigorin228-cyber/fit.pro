@@ -271,6 +271,7 @@ $('simMarch').addEventListener('click',march);
 $('simTrain').addEventListener('click',train);$('simDevelop').addEventListener('click',developCity);
 $('simTurn').addEventListener('click',advanceSeason);document.querySelectorAll('[data-tax]').forEach(b=>b.addEventListener('click',()=>setTax(b.dataset.tax)));$('simTrade').addEventListener('click',trade);$('simGranary').addEventListener('click',buildGranary);
 const simPanel=$('worldSim');
+const coreArmyLabel=$('armyLabel');if(coreArmyLabel)new MutationObserver(()=>renderArmyPanel()).observe(coreArmyLabel,{childList:true,subtree:true,characterData:true});
 const armyBtn=document.createElement('button');armyBtn.className='btn';armyBtn.id='simRaise';armyBtn.textContent='Сформировать отряд';$('simTrain').before(armyBtn);armyBtn.addEventListener('click',createArmy);$('simRecall').addEventListener('click',recallArmy);
 document.querySelectorAll('[data-formation]').forEach(b=>b.addEventListener('click',()=>chooseFormation(b.dataset.formation)));
 const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});let lastCoreTurn=$('turnLabel')?.textContent||'';if($('turnLabel'))new MutationObserver(()=>{const now=$('turnLabel').textContent;if(now!==lastCoreTurn){lastCoreTurn=now;economyTick();renderUI();save();}}).observe($('turnLabel'),{childList:true,subtree:true,characterData:true});
