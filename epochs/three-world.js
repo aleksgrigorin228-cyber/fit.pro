@@ -69,13 +69,14 @@ function tower(p,x,z,h=2.8,ruin=false){
  if(!ruin){cyl(g,1.02,.94,.34,8,[0,h+.1,0],M.pale);const roof=new THREE.Mesh(new THREE.ConeGeometry(.94,.8,8),M.roofSlate);roof.position.y=h+.66;g.add(roof)}
  else box(g,[1.35,.38,.8],[0,h,0],M.rock);
 }
-function city(p,seed,ruin){
+function city(p,seed,ruin,damaged){
  const g=new THREE.Group();g.position.y=.14;p.add(g);box(g,[6.9,.22,6.7],[0,.12,0],M.soil);
  const wall=ruin?M.rock:M.stone,wh=ruin ? .65 : 1.2;
  box(g,[6.5,wh,.38],[0,wh/2+.18,-3.1],wall);box(g,[6.5,wh,.38],[0,wh/2+.18,3.1],wall);
  box(g,[.38,wh,6.4],[-3.1,wh/2+.18,0],wall);box(g,[.38,wh,2.2],[3.1,wh/2+.18,-2.1],wall);box(g,[.38,wh,2.2],[3.1,wh/2+.18,2.1],wall);
  [[-3.1,-3.1],[3.1,-3.1],[-3.1,3.1],[3.1,3.1]].forEach(v=>tower(g,v[0],v[1],ruin?1.2:2.35,ruin));
  if(!ruin){
+  if(damaged){box(g,[1.25,.48,.42],[-1.25,.58,-3.12],M.rock);box(g,[.7,.3,.55],[-1.45,.22,-2.72],M.rock)}
   house(g,-.55,-.6,seed,1.05,M.roof2);house(g,1.45,1.42,seed+2,.66,M.roof);house(g,-1.65,1.55,seed+3,.62,M.roofSlate);
   box(g,[1.5,1.85,1.4],[.25,1,-1.68],M.pale);const chapel=new THREE.Mesh(new THREE.ConeGeometry(1.12,1.3,4),M.roofSlate);chapel.position.set(.25,2.55,-1.68);chapel.rotation.y=.78;g.add(chapel);
   tower(g,.25,-1.68,3.05,false);
@@ -115,7 +116,7 @@ function buildTile(el,i){
   const w=new THREE.Mesh(new THREE.PlaneGeometry(T*.96,T*.96,8,8),grounds.water);w.rotation.x=-Math.PI/2;w.position.y=.24;w.userData.idx=i;g.add(w);waters.push(w);
   for(let n=0;n<4;n++)rock(g,(rnd(i*7+n)-.5)*6,(rnd(i*9+n)-.5)*6,i+n,.2);
  }
- if(el.classList.contains('city'))city(g,i,el.classList.contains('city-ruined'));
+ if(el.classList.contains('city'))city(g,i,el.classList.contains('city-ruined'),el.classList.contains('city-damaged'));
  if(el.classList.contains('farm'))farm(g,i+400);
  if(el.classList.contains('windmill'))mills.push(mill(g));
  if(own!=='neutral')poleFlag(g,own==='player'?-3.2:3.2,.2,own==='player'?-3.2:3.2,own==='player'?'#c5a35d':'#a94d42',i+61);
@@ -182,7 +183,7 @@ function unitsSync(s,dt){
   let n=0;count.forEach((num,type)=>{for(let k=0;k<num;k++){const m=type===3?horseman('player',n*.47):infantry('player',keys[type],n*.47);m.scale.setScalar(type===3 ? .65 : .56);m.position.set((n%5-2)*.72,.2,Math.floor(n/5)*.72);armyLayer.add(m);armyUnits.push(m);n++}});
   const banner=new THREE.Group();poleFlag(banner,0,0,0,'#c5a15b',99);banner.position.set(-2,.2,-1.3);armyLayer.add(banner);
  }
- if(armyState.path.length&&armyState.index<armyState.path.length){armyState.progress+=dt*.28*[1,.78,.86,.58][Number(s.weather)%4];if(armyState.progress>=1){armyState.progress-=1;armyState.tile=Number(armyState.path[armyState.index++])}}
+ if(armyState.path.length&&armyState.index<armyState.path.length){const nextIndex=Number(armyState.path[armyState.index]),nextTile=tiles[nextIndex],kind=nextTile?terrain(nextTile):'plain';const terrainSpeed=kind==='mountain'?.42:kind==='forest'?.68:kind==='river'?.55:1;const cavalry=(Number(a.units?.cavalry)||0)/Math.max(1,Number(a.troops)||1);const supplyFactor=(Number(s.supply)||0)<25?.65:1;armyState.progress+=dt*[1,.78,.86,.58][Number(s.weather)%4]*terrainSpeed*supplyFactor*(1+cavalry*.18)*.7;if(armyState.progress>=1){armyState.progress-=1;armyState.tile=Number(armyState.path[armyState.index++])}}
  const i=armyState.tile,r=Math.floor(i/COLS),c=i%COLS;let x=(c-4)*T,z=(r-3)*T;
  if(armyState.index<armyState.path.length){const ni=Number(armyState.path[armyState.index]),nr=Math.floor(ni/COLS),nc=ni%COLS;x+=((nc-4)*T-x)*armyState.progress;z+=((nr-3)*T-z)*armyState.progress}
  armyLayer.position.set(x,.25,z);
@@ -193,7 +194,7 @@ function syncSelect(){
  groups.forEach((g,i)=>{g.children.filter(x=>x.userData.ring).forEach(x=>g.remove(x));if(i===idx)selection(g)});
 }
 function syncWeather(s){
- weather=Number(s.weather)||0;if(!rain)return;
+ weather=Number(s.weather)||0;if(scene?.fog)scene.fog.density=weather===2?.006:weather===1?.0032:weather===3?.0028:.0018;if(!rain)return;
  rain.visible=weather===1||weather===3;rain.material.color.set(weather===1?'#b8cfdd':'#eef2f0');rain.material.size=weather===1?.075:.15;rain.material.opacity=weather===1?.42:.76;
 }
 let rain, rainPos;
