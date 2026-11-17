@@ -30,7 +30,32 @@
   }else{visual.tile=a.tile;visual.index=0;visual.progress=0;visual.path=[];}
  }
  function line(x1,y1,x2,y2,color,width,dash){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore()}
+ function horseman(x,y,scale,step,team='player'){
+  const gait=Math.sin(step),cloth=team==='rival'?'#8d4b40':'#526d4b',metal='#b9b39a';
+  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
+  // Horse shadow and body.
+  ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(0,4,9.5,3.2,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=team==='rival'?'#6b4031':'#755337';ctx.strokeStyle='#30261d';ctx.lineWidth=1.1;
+  ctx.beginPath();ctx.ellipse(0,-2,8.2,4.2,-.08,0,Math.PI*2);ctx.fill();ctx.stroke();
+  // Neck, head and bridle.
+  ctx.beginPath();ctx.moveTo(5,-4);ctx.lineTo(8,-10);ctx.lineTo(12,-11);ctx.lineTo(13,-8);ctx.lineTo(10,-5);ctx.lineTo(8,0);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.strokeStyle='#c7a66f';ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(8,-8);ctx.lineTo(12,-7);ctx.stroke();
+  // Four animated legs.
+  ctx.strokeStyle='#4b3427';ctx.lineWidth=1.7;ctx.lineCap='round';
+  for(let i=0;i<4;i++){const front=i<2,phase=step+(i%2)*Math.PI+(front?0:Math.PI*.6),swing=Math.sin(phase)*2.2;
+   const lx=(front?5:-5)+(i%2?1:-1);ctx.beginPath();ctx.moveTo(lx,-.5);ctx.lineTo(lx+swing,4.5);ctx.stroke();
+  }
+  // Saddle and rider.
+  ctx.fillStyle='#a77b48';ctx.beginPath();ctx.ellipse(-1,-5,4.2,2.2,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=cloth;ctx.beginPath();ctx.moveTo(-4,-9);ctx.lineTo(3,-12);ctx.lineTo(5,-7);ctx.lineTo(1,-4);ctx.lineTo(-3,-5);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#d4b994';ctx.beginPath();ctx.arc(0,-14,2.1,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=metal;ctx.beginPath();ctx.arc(0,-14.6,2.3,Math.PI,Math.PI*2);ctx.lineTo(2.3,-13.8);ctx.lineTo(-2.3,-13.8);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#987b4e';ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(3,-10);ctx.lineTo(8,-18+Math.sin(step)*.7);ctx.stroke();
+  ctx.strokeStyle='#d7d0b8';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(8,-18);ctx.lineTo(9,-21);ctx.stroke();
+  ctx.restore();
+ }
  function soldier(x,y,scale,angle,shade,step=0,team='player',unitType=0){
+  if(unitType===3){horseman(x,y,scale,step,team);return;}
   if(unitAtlas.complete&&unitAtlas.naturalWidth>0){
    const gait=Math.sin(step),lift=Math.max(0,gait)*.8,frames=team==='rival'?[2,3,5,7]:[0,1,4,6],frame=frames[Math.max(0,Math.min(3,unitType|0))];
    ctx.save();ctx.translate(x,y-lift);ctx.rotate(angle);ctx.globalAlpha=1;
@@ -89,6 +114,32 @@
    ctx.save();ctx.globalAlpha=.78;ctx.font='600 9px system-ui';ctx.textAlign='center';ctx.fillStyle='#f0dfb3';ctx.shadowColor='#000';ctx.shadowBlur=4;ctx.fillText(String(a.troops),x,y+19*scale);ctx.restore();
   }
  }
+ function drawSiegeEngines(s,t){
+  const sieges=Array.isArray(s?.sieges)?s.sieges:[];
+  sieges.forEach((siege,index)=>{
+   const p=centers[siege.tile];if(!p)return;
+   const progress=Math.max(0,Math.min(3,Number(siege.progress)||0)),scale=clamp(p.size/58,.55,1.05);
+   const x=p.x+((index%2)?-1:1)*p.size*.23,y=p.y+p.size*.22;
+   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);
+   // Wheeled wooden siege ram and protective roof.
+   ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(0,7,18,5,0,0,Math.PI*2);ctx.fill();
+   ctx.strokeStyle='#493322';ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(-14,2);ctx.lineTo(14,2);ctx.stroke();
+   [-10,10].forEach(wx=>{ctx.fillStyle='#5b402b';ctx.beginPath();ctx.arc(wx,5,3.2,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#c2a16a';ctx.lineWidth=.8;ctx.stroke();ctx.beginPath();ctx.moveTo(wx-2,5);ctx.lineTo(wx+2,5);ctx.moveTo(wx,3);ctx.lineTo(wx,7);ctx.stroke();});
+   ctx.fillStyle='#725438';ctx.strokeStyle='#c19a5d';ctx.lineWidth=1;
+   ctx.beginPath();ctx.moveTo(-13,0);ctx.lineTo(-10,-10);ctx.lineTo(10,-10);ctx.lineTo(13,0);ctx.closePath();ctx.fill();ctx.stroke();
+   ctx.strokeStyle='#d0b37a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-9,-7);ctx.lineTo(9,-7);ctx.moveTo(-6,-10);ctx.lineTo(-6,0);ctx.moveTo(6,-10);ctx.lineTo(6,0);ctx.stroke();
+   ctx.strokeStyle='#4b3324';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-12,-3);ctx.lineTo(12,-3);ctx.stroke();
+   ctx.fillStyle='#d1b27a';ctx.beginPath();ctx.arc(0,-3,2.1,0,Math.PI*2);ctx.fill();
+   // A catapult arm rises as the siege progresses; its stone shot follows a short arc.
+   const launch=(t*.72+progress*.31)%1,arm=-.25-Math.sin(launch*Math.PI)*.42;
+   ctx.save();ctx.translate(13,-9);ctx.rotate(arm);ctx.strokeStyle='#9a7448';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-17);ctx.stroke();
+   ctx.fillStyle='#c0a16a';ctx.beginPath();ctx.arc(0,-18,2.3,0,Math.PI*2);ctx.fill();ctx.restore();
+   ctx.restore();
+   if(progress>0){
+    ctx.save();ctx.globalAlpha=.65;ctx.fillStyle='#e0c18a';ctx.font='600 8px system-ui';ctx.textAlign='center';ctx.fillText('ОСАДА '+Math.floor(progress)+'/3',p.x,p.y-p.size*.35);ctx.restore();
+   }
+  });
+ }
  function drawBattle(s,t,dt){
   const ev=s?.events?.[0]||'';
   if(ev&&ev!==lastEvent){
@@ -138,7 +189,7 @@
   if(document.hidden){raf=0;return}
   const dt=Math.min(.05,(now-last)/1000||0);last=now;elapsed+=dt;
   if(Math.floor(now/260)!==Math.floor((now-dt*1000)/260)){snapshot=read();locate();}
-  sample(snapshot,dt);ctx.clearRect(0,0,w,h);drawFormation(elapsed,dt,snapshot);drawBattle(snapshot,elapsed,dt);
+  sample(snapshot,dt);ctx.clearRect(0,0,w,h);drawFormation(elapsed,dt,snapshot);drawSiegeEngines(snapshot,elapsed);drawBattle(snapshot,elapsed,dt);
   dust=dust.filter(p=>p.life>0);
   ctx.save();dust.forEach(p=>{p.life-=dt*1.25;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy-=3*dt;ctx.globalAlpha=Math.max(0,p.life)*.32;ctx.fillStyle='#d9c9a1';ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill()});ctx.restore();
   raf=requestAnimationFrame(frame);
