@@ -39,13 +39,32 @@
     <aside class="right-col">
       <section class="panel"><div class="panel-head"><h2>Земельный совет</h2><span class="pill" id="tileOwnerPill">ВАШИ ЗЕМЛИ</span></div><div class="panel-body" id="inspector"></div></section>
       <section class="panel"><div class="panel-head"><h2>Путь знаний</h2><span class="pill" id="techCount">0 / 3</span></div><div class="panel-body" id="techPanel"></div></section>
+      <section class="panel legacy-panel">
+        <div class="panel-head"><h2>Летопись правителя</h2><span class="pill" id="legacyCount">0 / 10</span></div>
+        <div class="panel-body">
+          <div class="legacy-stats">
+            <div class="legacy-stat"><span>Лучший ход</span><b id="legacyBestTurn">—</b></div>
+            <div class="legacy-stat"><span>Области</span><b id="legacyBestLand">—</b></div>
+            <div class="legacy-stat"><span>Воины</span><b id="legacyBestArmy">—</b></div>
+          </div>
+          <div class="legacy-objective" id="legacyObjective">
+            <div class="legacy-objective-head"><strong id="legacyObjectiveTitle">Цель летописца</strong><span id="legacyObjectiveValue">—</span></div>
+            <p id="legacyObjectiveText">Развивай державу, чтобы выполнить необязательные цели.</p>
+            <div class="legacy-objective-track"><span id="legacyObjectiveBar"></span></div>
+          </div>
+          <div class="achievement-list" id="achievementList" aria-live="polite"></div>
+          <div class="legacy-actions"><button class="btn" id="exportLegacyBtn">↓ Экспорт летописи</button></div>
+          <div class="legacy-footnote">Достижения и рекорды сохраняются отдельно на этом устройстве. Экспорт не заменяет сохранение основной игры.</div>
+        </div>
+      </section>
       <section class="panel log-panel"><div class="panel-head"><h2>Летопись событий</h2><button class="btn" id="clearLogBtn" style="padding:5px 8px;font-size:9px">Очистить</button></div><div class="panel-body"><div class="log-list" id="logList"></div></div></section>
     </aside>
   </main>
-  <div class="footer-note">ЭПОХИ · Игровой мир сохраняется на этом устройстве · Версия 0.1.0 «Основание»</div>
+  <div class="footer-note">ЭПОХИ · Игровой мир сохраняется на этом устройстве · Версия 0.2.0 «Летопись»</div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="event-cover" id="eventCover" role="dialog" aria-modal="true"><div class="event-card"><div class="event-mark" id="eventIcon">📜</div><div class="eyebrow">СОБЫТИЕ ЛЕТОПИСИ</div><h2 id="eventTitle">Событие</h2><p id="eventText"></p><div class="event-options" id="eventOptions"></div></div></div>
 <script src="game-loader.js" defer></script>
+<script src="game-expansion.js" defer></script>
 </body>
 </html>
