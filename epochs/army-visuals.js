@@ -134,6 +134,14 @@
    const launch=(t*.72+progress*.31)%1,arm=-.25-Math.sin(launch*Math.PI)*.42;
    ctx.save();ctx.translate(13,-9);ctx.rotate(arm);ctx.strokeStyle='#9a7448';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-17);ctx.stroke();
    ctx.fillStyle='#c0a16a';ctx.beginPath();ctx.arc(0,-18,2.3,0,Math.PI*2);ctx.fill();ctx.restore();
+   // Visible stone flight during the siege cycle.
+   const shotPhase=(t*.46+progress*.19)%1;
+   if(shotPhase>.56&&shotPhase<.98){
+    const q=(shotPhase-.56)/.42,sx=-3+q*23,sy=-13-Math.sin(q*Math.PI)*13;
+    ctx.fillStyle='rgba(18,17,14,.28)';ctx.beginPath();ctx.ellipse(sx+2,sy+4,3.8,1.6,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#5b5141';ctx.strokeStyle='#c1a57a';ctx.lineWidth=.7;ctx.beginPath();ctx.arc(sx,sy,2.8,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.strokeStyle='rgba(222,198,150,.55)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx-5,sy+2);ctx.lineTo(sx-1,sy+1);ctx.stroke();
+   }
    ctx.restore();
    if(progress>0){
     ctx.save();ctx.globalAlpha=.65;ctx.fillStyle='#e0c18a';ctx.font='600 8px system-ui';ctx.textAlign='center';ctx.fillText('ОСАДА '+Math.floor(progress)+'/3',p.x,p.y-p.size*.35);ctx.restore();
