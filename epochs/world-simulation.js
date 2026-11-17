@@ -14,7 +14,7 @@ const weatherTypes = [
   {id:'snow',name:'Снег',icon:'❄️',speed:.58,combat:.88,supply:.76}
 ];
 const terrainNames = { 'terrain-plains':'Равнина','terrain-forest':'Лес','terrain-mountain':'Горы','terrain-river':'Переправа','terrain-water':'Вода' };
-const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null});
+const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0});
 function load(){
   try { const x=JSON.parse(localStorage.getItem(KEY)||'null'); if(!x||x.version!==1)return fresh();
     return {...fresh(),...x,events:Array.isArray(x.events)?x.events.slice(0,12):[],captured:Array.isArray(x.captured)?x.captured:[]};
@@ -39,7 +39,7 @@ function makeUI(){
  const panel=document.createElement('section');panel.className='world-sim panel-body';panel.id='worldSim';
  panel.innerHTML='<div class="sim-heading"><div><div class="eyebrow">ЖИВОЙ МИР · ТАКТИЧЕСКАЯ СИМУЛЯЦИЯ</div><h3>Оперативная карта</h3><p>Отправляйте отряды по областям. Рельеф, погода, снабжение и боевой дух влияют на исход похода.</p></div><span class="sim-version">0.5.0</span></div>'+
  '<div class="sim-stats"><div><span>Погода</span><b id="simWeather">☀️ Ясно</b></div><div><span>Время суток</span><b id="simPhase">☀️ День</b></div><div><span>Население</span><b id="simPopulation">1 250</b></div><div><span>Снабжение</span><b id="simSupply">100%</b></div><div><span>Боевой дух</span><b id="simMorale">82%</b></div><div><span>Отряд</span><b id="simArmy">Нет войска</b></div></div>'+
- '<div class="sim-actions"><button class="btn primary" id="simMarch" disabled>⚔️ Отправить отряд</button><button class="btn" id="simTrain">🛡️ Учения (+мораль)</button><button class="btn" id="simDevelop" disabled>🏗️ Развивать город</button><button class="btn" id="simTurn">⏳ Сменить сезон</button></div>'+
+ '<div class="sim-economy"><div class="sim-economy-head"><strong>Казна и хозяйство</strong><span id="simEconomyStatus">Держава стабильна</span></div><div class="sim-economy-stats"><div>Казна <b id="simTreasury">120</b></div><div>Запасы пищи <b id="simFood">90</b></div><div>Налоги <b id="simTax">Обычные</b></div><div>Недовольство <b id="simUnrest">12%</b></div></div><div class="sim-policy"><span>Налоговая политика</span><button class="btn" data-tax="low">Низкие</button><button class="btn active" data-tax="normal">Обычные</button><button class="btn" data-tax="high">Высокие</button></div><div class="sim-actions"><button class="btn" id="simTrade">🛒 Торговый караван</button><button class="btn" id="simGranary">🌾 Построить амбар</button></div></div>'+'<div class="sim-actions"><button class="btn primary" id="simMarch" disabled>⚔️ Отправить отряд</button><button class="btn" id="simTrain">🛡️ Учения (+мораль)</button><button class="btn" id="simDevelop" disabled>🏗️ Развивать город</button><button class="btn" id="simTurn">⏳ Сменить сезон</button></div>'+
  '<div class="sim-selection" id="simSelection">Выберите область на карте, чтобы проложить маршрут.</div>'+
  '<div class="sim-log"><div class="sim-log-title">Хроника похода</div><div id="simLog" aria-live="polite"></div></div>';
  mapPanel.appendChild(panel);
@@ -47,7 +47,7 @@ function makeUI(){
  return canvas;
 }
 const canvas=makeUI(),ctx=canvas.getContext('2d');
-function renderLog(){const node=$('simLog');if(node)node.innerHTML=state.events.map(x=>'<div class="sim-log-entry">'+escapeHTML(x)+'</div>').join('');}
+function renderEconomy(){const taxNames={low:'Низкие',normal:'Обычные',high:'Высокие'};$('simTreasury').textContent=Math.floor(state.treasury)+' 🪙';$('simFood').textContent=Math.floor(state.food)+' ед.';$('simTax').textContent=taxNames[state.tax]||taxNames.normal;$('simUnrest').textContent=Math.round(state.unrest)+'%';$('simEconomyStatus').textContent=state.food<20?'Угроза голода':state.unrest>65?'Риск волнений':state.treasury<15?'Казна истощена':state.granary?'Амбар действует':'Держава стабильна';document.querySelectorAll('[data-tax]').forEach(b=>b.classList.toggle('active',b.dataset.tax===state.tax));$('simGranary').textContent=state.granary?'🌾 Амбар построен':'🌾 Построить амбар';$('simGranary').disabled=state.granary||state.treasury<65;}function renderLog(){const node=$('simLog');if(node)node.innerHTML=state.events.map(x=>'<div class="sim-log-entry">'+escapeHTML(x)+'</div>').join('');}
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function updatePoints(){
  syncTiles();const wrap=mapWrap.getBoundingClientRect();
@@ -103,8 +103,8 @@ function battle(army,target){
    else{army.path=[];army.target=army.tile;state.supply=Math.max(0,state.supply-18);}
  }
 }
-function advanceSeason(){
- state.turn++;state.weather=(state.weather+1)%weatherTypes.length;state.phase=(state.phase+1)%4;
+function economyTick(){const lands=Math.max(1,Number((($('landLabel')?.textContent||'5').match(/\d+/)||['5'])[0]));const taxRate=state.tax==='low'?1:state.tax==='high'?3:2;const income=lands*taxRate;state.treasury+=income;const harvest=lands*(state.granary?5:3);state.food+=harvest;const populationUse=Math.max(1,Math.ceil(state.population/450));const armyUse=state.army?Math.max(1,Math.ceil(state.army.troops/12)):0;state.food=Math.max(0,state.food-populationUse-armyUse);state.treasury=Math.max(0,state.treasury-armyUse);if(state.food===0){state.unrest=Math.min(100,state.unrest+12);state.morale=Math.max(0,state.morale-8);state.population=Math.max(100,state.population-25);log('Голод: запасы пищи исчерпаны. Население и боевой дух падают.');}else{state.unrest=Math.max(0,state.unrest+(state.tax==='high'?8:state.tax==='low'?-5:0)-2);if(state.unrest>70){state.morale=Math.max(0,state.morale-5);log('В городах растёт недовольство из-за налогового бремени.');}}if(state.tradeCooldown>0)state.tradeCooldown--;log('Доход казны: +'+income+' монет. Урожай: +'+harvest+' пищи; потребление: -'+(populationUse+armyUse)+'.');}function setTax(value){if(!['low','normal','high'].includes(value))return;state.tax=value;state.unrest=Math.max(0,Math.min(100,state.unrest+(value==='high'?4:value==='low'?-3:0)));log('Налоговая политика изменена: '+({low:'низкие налоги',normal:'обычные налоги',high:'высокие налоги'}[value])+'.');renderUI();save();}function trade(){if(state.tradeCooldown>0){log('Караван ещё не вернулся. Подождите один сезон.');return;}if(state.food<12){log('Недостаточно продовольствия для торгового каравана.');return;}state.food-=12;state.treasury+=28;state.tradeCooldown=2;log('Торговый караван продал излишки продовольствия: +28 монет, -12 пищи.');renderUI();save();}function buildGranary(){if(state.granary||state.treasury<65)return;state.treasury-=65;state.granary=true;log('Амбар построен. Урожай каждого сезона увеличен.');renderUI();save();}function advanceSeason(){
+ state.turn++;economyTick();state.weather=(state.weather+1)%weatherTypes.length;state.phase=(state.phase+1)%4;
  state.supply=Math.max(0,state.supply-(state.army?.path?.length?7:2)*weather().supply);
  state.population=Math.max(0,state.population+Math.max(1,Math.round(state.population*.006)));
  state.development.forEach(x=>x.remaining--);
@@ -165,10 +165,10 @@ function draw(t){
 grid.addEventListener('click',e=>{const tile=e.target.closest('.tile');if(tile)selectTile(tile);});
 $('simMarch').addEventListener('click',march);
 $('simTrain').addEventListener('click',train);$('simDevelop').addEventListener('click',developCity);
-$('simTurn').addEventListener('click',advanceSeason);
+$('simTurn').addEventListener('click',advanceSeason);document.querySelectorAll('[data-tax]').forEach(b=>b.addEventListener('click',()=>setTax(b.dataset.tax)));$('simTrade').addEventListener('click',trade);$('simGranary').addEventListener('click',buildGranary);
 const simPanel=$('worldSim');
 const armyBtn=document.createElement('button');armyBtn.className='btn';armyBtn.id='simRaise';armyBtn.textContent='🏇 Сформировать отряд';$('simTrain').before(armyBtn);armyBtn.addEventListener('click',createArmy);
-const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});
+const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});let lastCoreTurn=$('turnLabel')?.textContent||'';if($('turnLabel'))new MutationObserver(()=>{const now=$('turnLabel').textContent;if(now!==lastCoreTurn){lastCoreTurn=now;economyTick();renderUI();save();}}).observe($('turnLabel'),{childList:true,subtree:true,characterData:true});
 window.addEventListener('resize',updatePoints,{passive:true});
 syncTiles();
 if(state.army&&(!tiles[state.army.tile]))state.army=null;
