@@ -328,3 +328,18 @@ body:after{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;opac
  .right-col{grid-column:1;grid-row:3;grid-template-columns:minmax(0,1fr)}
  .left-col .panel-body,.right-col .panel-body{padding:10px}
 }
+
+/* Diplomacy panel — text-led decisions and treaty status. */
+.diplomacy-panel{border-color:#8b9f8738!important;background:linear-gradient(155deg,#15262a,#0b171b)!important}
+.dip-country{font:600 16px Georgia,serif;color:#e7dcbb;margin-bottom:10px}
+.dip-relation-head{display:flex;justify-content:space-between;gap:8px;color:#a7b6a7;font-size:10px}
+.dip-relation-head b{font-size:11px;color:#e4d09d}
+.dip-meter{height:7px;margin:6px 0 9px;background:#0a1316;border-radius:8px;overflow:hidden}
+.dip-meter span{display:block;height:100%;width:56%;background:linear-gradient(90deg,#ad7461,#b7aa70,#8eb58f);transition:width .2s}
+.dip-summary{font-size:10px;color:#b6c2b5;line-height:1.5;margin:8px 0}
+.dip-treaties{font-size:9px;color:#d8c48e;padding:7px 8px;background:#0c191c;border:1px solid #8da79a22;margin-bottom:9px}
+.dip-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dip-actions .btn{font-size:8px;padding:8px 7px;min-height:34px;border-radius:2px;text-transform:none;letter-spacing:0}
+.dip-actions .btn.danger{background:#382522;border-color:#815048;color:#e4b5a7}
+.dip-actions .btn:disabled{opacity:.35}
+@media(max-width:760px){.dip-actions{grid-template-columns:1fr 1fr}}

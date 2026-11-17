@@ -13,6 +13,7 @@ const weatherTypes = [
   {id:'fog',name:'Туман',speed:.86,combat:.82,supply:.9},
   {id:'snow',name:'Снег',speed:.58,combat:.88,supply:.76}
 ];
+function freshDiplomacy(){return {relation:12,atWar:false,tradeTurns:0,nonAggressionTurns:0,allianceTurns:0};}
 const FORMATIONS = {
  balanced:{name:'Сбалансированный строй',description:'Равномерное сочетание пехоты, копейщиков, лучников и конницы.',ratios:{infantry:.42,spearmen:.25,archers:.23,cavalry:.10}},
  shieldwall:{name:'Стена щитов',description:'Усиленная линия копейщиков. Хорошо держит позицию, но движется медленнее.',ratios:{infantry:.28,spearmen:.48,archers:.18,cavalry:.06}},
@@ -65,12 +66,16 @@ function applyLosses(army,losses){
  army.units=Object.fromEntries(UNIT_TYPES.map((u,i)=>[u.key,Math.max(0,units[u.key]-cuts[i])]));army.troops=compositionTotal(army.units);state.armyLosses=Math.max(0,Number(state.armyLosses)||0)+actual;return actual;
 }
 const terrainNames = { 'terrain-plains':'Равнина','terrain-forest':'Лес','terrain-mountain':'Горы','terrain-river':'Переправа','terrain-water':'Вода' };
-const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,armyLosses:0,formation:'balanced',events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
+const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,armyLosses:0,formation:'balanced',diplomacy:freshDiplomacy(),events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
 function load(){
   try { const x=JSON.parse(localStorage.getItem(KEY)||'null'); if(!x||x.version!==1)return fresh();
     const saved={...fresh(),...x,events:Array.isArray(x.events)?x.events.slice(0,12):[],captured:Array.isArray(x.captured)?x.captured:[],sieges:Array.isArray(x.sieges)?x.sieges:[],cityDamage:x.cityDamage&&typeof x.cityDamage==='object'?x.cityDamage:{}};
     if(!FORMATIONS[saved.formation])saved.formation='balanced';
     saved.armyLosses=Math.max(0,Math.floor(Number(saved.armyLosses)||0));
+    const diplomacy=freshDiplomacy();saved.diplomacy={...diplomacy,...(saved.diplomacy||{})};
+    saved.diplomacy.relation=Math.max(-100,Math.min(100,Number(saved.diplomacy.relation)||0));
+    ['tradeTurns','nonAggressionTurns','allianceTurns'].forEach(k=>saved.diplomacy[k]=Math.max(0,Math.floor(Number(saved.diplomacy[k])||0)));
+    saved.diplomacy.atWar=!!saved.diplomacy.atWar;
     if(saved.army){saved.army.units=normalizeComposition(saved.army.units,saved.army.troops,saved.formation);saved.army.troops=compositionTotal(saved.army.units);}
     return saved;
   } catch(_){return fresh();}
@@ -104,6 +109,7 @@ function makeUI(){
  return canvas;
 }
 const canvas=makeUI(),ctx=canvas.getContext('2d');
+ensureDiplomacyUI();
 function renderEconomy(){const taxNames={low:'Низкие',normal:'Обычные',high:'Высокие'};$('simTreasury').textContent=Math.floor(state.treasury)+' монет';$('simFood').textContent=Math.floor(state.food)+' ед.';$('simTax').textContent=taxNames[state.tax]||taxNames.normal;$('simUnrest').textContent=Math.round(state.unrest)+'%';$('simEconomyStatus').textContent=state.food<20?'Угроза голода':state.unrest>65?'Риск волнений':state.treasury<15?'Казна истощена':state.granary?'Амбар действует':'Держава стабильна';document.querySelectorAll('[data-tax]').forEach(b=>b.classList.toggle('active',b.dataset.tax===state.tax));$('simGranary').textContent=state.granary?'Амбар построен':'Построить амбар';$('simGranary').disabled=state.granary||state.treasury<65;
  const caravan=$('simTrade');if(caravan){caravan.disabled=state.tradeCooldown>0||state.food<12;caravan.textContent=state.tradeCooldown>0?'Караван в пути: '+state.tradeCooldown+' сезона':'Торговый караван';}}function renderLog(){const node=$('simLog');if(node)node.innerHTML=state.events.map(x=>'<div class="sim-log-entry">'+escapeHTML(x)+'</div>').join('');}
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -124,7 +130,7 @@ function renderUI(){
  const recall=$('simRecall');recall.disabled=!army||!!army.path?.length;recall.textContent=army?.recalling?'Отряд возвращается домой…':'Отозвать отряд';
  const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected)||state.supply<15;
  const activeSiege=sel&&state.sieges.find(x=>x.tile===state.selected);$('simSelection').textContent=sel?'Цель: '+tileName(sel,state.selected)+' · '+terrainNames[tileTerrain(sel)]+' · '+(activeSiege?'ОСАДА '+Math.min(3,Math.floor(activeSiege.progress))+'/3':tileOwner(sel)==='rival'?'вражеская территория':tileOwner(sel)==='player'?'ваша территория':'нейтральная область'):'Выберите область на карте, чтобы проложить маршрут.';
- renderLog();renderEconomy();renderArmyPanel();renderBattlePreview(sel);
+ renderLog();renderEconomy();renderArmyPanel();renderBattlePreview(sel);renderDiplomacy();
 }
 function renderBattlePreview(tile){
  const panel=$('simBattlePreview');if(!panel)return;
@@ -137,6 +143,32 @@ function renderBattlePreview(tile){
  panel.innerHTML='<div class="sim-battle-head"><strong>Тактическая оценка</strong><span>'+forecast+'</span></div><div class="sim-battle-values"><div><span>Ваш ударный потенциал</span><b>'+Math.round(ownPower)+'</b></div><div><span>Оборона области</span><b>'+Math.round(enemyPower)+'</b></div><div><span>Гарнизон</span><b>'+garrison.troops+' бойцов</b></div><div><span>Ожидаемые потери</span><b>до '+estimatedLosses+'</b></div></div><div class="sim-battle-rosters"><div>Ваш состав: пехота '+ownUnits.infantry+', копейщики '+ownUnits.spearmen+', лучники '+ownUnits.archers+', кавалерия '+ownUnits.cavalry+'.</div><div>Защитники: пехота '+garrison.units.infantry+', копейщики '+garrison.units.spearmen+', лучники '+garrison.units.archers+', кавалерия '+garrison.units.cavalry+'.</div></div><p>'+tileType+'</p>'+(state.army?'':'<p class="sim-battle-note">Это прогноз для выбранной формации. Сначала сформируйте полевой отряд.</p>');
  panel.classList.add('visible');
 }
+function ensureDiplomacyUI(){
+ const host=document.querySelector('.left-col');if(!host||$('diplomacyPanel'))return;
+ const panel=document.createElement('section');panel.className='panel diplomacy-panel';panel.id='diplomacyPanel';
+ panel.innerHTML='<div class="panel-head"><h2>Дипломатия</h2><span class="pill" id="dipStatus">МИР</span></div><div class="panel-body"><div class="dip-country">Королевство Вейр</div><div class="dip-relation-head"><span>Отношения</span><b id="dipRelation">+12 / 100</b></div><div class="dip-meter"><span id="dipRelationBar"></span></div><p class="dip-summary" id="dipSummary"></p><div class="dip-treaties" id="dipTreaties"></div><div class="dip-actions"><button class="btn" id="dipGift">Отправить подарок · 25 монет</button><button class="btn" id="dipTrade">Заключить торговый договор · 40 монет</button><button class="btn" id="dipPact">Пакт о ненападении · 30 монет</button><button class="btn" id="dipAlliance">Предложить союз · 60 монет</button><button class="btn danger" id="dipWar">Объявить войну</button><button class="btn" id="dipPeace">Предложить мир · 20 монет</button></div></div>';
+ host.appendChild(panel);
+ $('dipGift').addEventListener('click',sendDiplomaticGift);$('dipTrade').addEventListener('click',signTradeTreaty);$('dipPact').addEventListener('click',signNonAggression);$('dipAlliance').addEventListener('click',signAlliance);$('dipWar').addEventListener('click',declareWar);$('dipPeace').addEventListener('click',offerPeace);
+}
+function renderDiplomacy(){
+ const d=state.diplomacy;if(!$('dipRelation'))return;
+ const relation=Math.round(d.relation),status=d.atWar?'ВОЙНА':d.allianceTurns>0?'СОЮЗ':d.nonAggressionTurns>0?'ПАКТ':d.tradeTurns>0?'ТОРГОВЛЯ':'МИР';
+ $('dipStatus').textContent=status;$('dipRelation').textContent=(relation>0?'+':'')+relation+' / 100';$('dipRelationBar').style.width=((relation+100)/2)+'%';
+ $('dipSummary').textContent=d.atWar?'Державы находятся в состоянии войны. Боевые действия продолжаются, отношения ухудшаются каждый сезон.':d.allianceTurns>0?'Союз действует ещё '+d.allianceTurns+' сезона. Доход казны и снабжение получают поддержку.':d.nonAggressionTurns>0?'Пакт действует ещё '+d.nonAggressionTurns+' сезона. Нападение на Вейр запрещено.':d.tradeTurns>0?'Торговый договор действует ещё '+d.tradeTurns+' сезона. Караваны приносят дополнительный доход.':'Дипломатические отношения определяют доступные договоры. Улучшайте доверие подарками и торговлей.';
+ const terms=[];if(d.tradeTurns>0)terms.push('Торговля: '+d.tradeTurns+' сезона');if(d.nonAggressionTurns>0)terms.push('Ненападение: '+d.nonAggressionTurns+' сезона');if(d.allianceTurns>0)terms.push('Союз: '+d.allianceTurns+' сезона');$('dipTreaties').textContent=terms.length?terms.join(' · '):'Активных договоров нет';
+ $('dipGift').disabled=d.atWar||state.treasury<25||d.relation>=95;
+ $('dipTrade').disabled=d.atWar||d.tradeTurns>0||d.relation<10||state.treasury<40;
+ $('dipPact').disabled=d.atWar||d.nonAggressionTurns>0||d.allianceTurns>0||d.relation<35||state.treasury<30;
+ $('dipAlliance').disabled=d.atWar||d.allianceTurns>0||d.nonAggressionTurns>0||d.relation<65||state.treasury<60;
+ $('dipWar').disabled=d.atWar||d.nonAggressionTurns>0||d.allianceTurns>0;
+ $('dipPeace').disabled=!d.atWar||state.treasury<20;
+}
+function sendDiplomaticGift(){const d=state.diplomacy;if(d.atWar||d.relation>=95||state.treasury<25)return;state.treasury-=25;d.relation=Math.min(100,d.relation+12);log('Послы доставили подарок двору Вейра. Отношения улучшились на 12 пунктов.');renderUI();save();}
+function signTradeTreaty(){const d=state.diplomacy;if(d.atWar||d.tradeTurns>0||d.relation<10||state.treasury<40)return;state.treasury-=40;d.tradeTurns=4;d.relation=Math.min(100,d.relation+8);log('С Вейром заключён торговый договор на четыре сезона. Караваны увеличат доход и запасы пищи.');renderUI();save();}
+function signNonAggression(){const d=state.diplomacy;if(d.atWar||d.nonAggressionTurns>0||d.allianceTurns>0||d.relation<35||state.treasury<30)return;state.treasury-=30;d.nonAggressionTurns=4;d.relation=Math.min(100,d.relation+6);log('Подписан пакт о ненападении с Вейром сроком на четыре сезона.');renderUI();save();}
+function signAlliance(){const d=state.diplomacy;if(d.atWar||d.allianceTurns>0||d.nonAggressionTurns>0||d.relation<65||state.treasury<60)return;state.treasury-=60;d.allianceTurns=5;d.relation=Math.min(100,d.relation+10);log('Вейр принял предложение о союзе на пять сезонов. Союз поддержит торговлю и снабжение.');renderUI();save();}
+function declareWar(){const d=state.diplomacy;if(d.atWar||d.nonAggressionTurns>0||d.allianceTurns>0)return;d.atWar=true;d.tradeTurns=0;d.relation=Math.max(-100,d.relation-45);state.unrest=Math.min(100,state.unrest+8);state.morale=Math.min(100,state.morale+5);log('Объявлена война Королевству Вейр. Теперь можно наступать на его территории. Война увеличивает недовольство.');renderUI();save();}
+function offerPeace(){const d=state.diplomacy;if(!d.atWar||state.treasury<20)return;state.treasury-=20;d.atWar=false;d.relation=Math.max(-10,d.relation+35);d.tradeTurns=0;d.nonAggressionTurns=2;state.sieges=[];syncTiles();log('С Вейром заключён мир и двухсезонное перемирие. Осадные действия прекращены.');renderUI();save();}
 function renderArmyPanel(){
  const available=troopCount(),deployed=state.army?state.army.troops:0,reserve=Math.max(0,available-deployed);
  const total=state.army?state.army.troops:Math.max(0,Math.min(60,available));
@@ -151,7 +183,7 @@ function renderArmyPanel(){
 function neighbors(i){const row=Math.floor(i/9),col=i%9,out=[];if(col>0)out.push(i-1);if(col<8)out.push(i+1);if(row>0)out.push(i-9);if(row<6)out.push(i+9);return out.filter(n=>n<tiles.length);}
 function route(from,to){
  const q=[from],prev=new Map([[from,-1]]);
- while(q.length){const n=q.shift();if(n===to)break;for(const v of neighbors(n)){if(prev.has(v)||tileTerrain(tiles[v])==='terrain-water')continue;prev.set(v,n);q.push(v);}}
+ while(q.length){const n=q.shift();if(n===to)break;for(const v of neighbors(n)){if(prev.has(v)||tileTerrain(tiles[v])==='terrain-water'||(!state.diplomacy.atWar&&tileOwner(tiles[v])==='rival'))continue;prev.set(v,n);q.push(v);}}
  if(!prev.has(to))return null;const path=[];for(let n=to;n!==from;n=prev.get(n))path.push(n);return path.reverse();
 }
 function selectTile(tile){
@@ -162,12 +194,14 @@ function march(){
  const path=route(state.army.tile,state.selected);
  if(!path){log('Маршрут перекрыт водой или недоступным участком.');return;}
  if(!path.length)return;
+ if(tileOwner(tiles[state.selected])==='rival'&&!state.diplomacy.atWar){log('Нельзя наступать на земли Вейра без объявления войны. Откройте дипломатические отношения.');renderUI();return;}
  state.army.path=path;state.army.progress=0;state.army.target=state.selected;
  log('Отряд выступил к области «'+tileName(tiles[state.selected],state.selected)+'».');
  renderUI();save();
 }
 function battle(army,target){
  const tile=tiles[target],owner=tileOwner(tile);
+ if(owner==='rival'&&!state.diplomacy.atWar){log('Битва невозможна: сначала объявите войну Вейру.');return;}
  if(owner==='rival'&&tile.classList.contains('city')){
    if(!state.sieges.some(x=>x.tile===target)){
      state.sieges.push({tile:target,progress:0,started:state.turn});syncTiles();
@@ -220,7 +254,13 @@ function advanceSieges(){
  if(completed.length)state.sieges=state.sieges.filter(x=>!completed.includes(x.tile));
  syncTiles();
 }
-function economyTick(){const lands=Math.max(1,Number((($('landLabel')?.textContent||'5').match(/\d+/)||['5'])[0]));const taxRate=state.tax==='low'?1:state.tax==='high'?3:2;const income=lands*taxRate;state.treasury+=income;const harvest=lands*(state.granary?5:3);state.food+=harvest;const populationUse=Math.max(1,Math.ceil(state.population/450));const armyUse=state.army?Math.max(1,Math.ceil(state.army.troops/12)+Math.ceil((state.army.units?.cavalry||0)/18)):0;state.food=Math.max(0,state.food-populationUse-armyUse);state.treasury=Math.max(0,state.treasury-armyUse);if(state.food===0){state.unrest=Math.min(100,state.unrest+12);state.morale=Math.max(0,state.morale-8);state.population=Math.max(100,state.population-25);log('Голод: запасы пищи исчерпаны. Население и боевой дух падают.');}else{state.unrest=Math.max(0,state.unrest+(state.tax==='high'?8:state.tax==='low'?-5:0)-2);if(state.unrest>70){state.morale=Math.max(0,state.morale-5);log('В городах растёт недовольство из-за налогового бремени.');}}if(state.tradeCooldown>0)state.tradeCooldown--;log('Доход казны: +'+income+' монет. Урожай: +'+harvest+' пищи; потребление: -'+(populationUse+armyUse)+'.');}function setTax(value){if(!['low','normal','high'].includes(value))return;state.tax=value;state.unrest=Math.max(0,Math.min(100,state.unrest+(value==='high'?4:value==='low'?-3:0)));log('Налоговая политика изменена: '+({low:'низкие налоги',normal:'обычные налоги',high:'высокие налоги'}[value])+'.');renderUI();save();}function trade(){if(state.tradeCooldown>0){log('Караван ещё не вернулся. Подождите один сезон.');return;}if(state.food<12){log('Недостаточно продовольствия для торгового каравана.');return;}state.food-=12;state.treasury+=28;state.tradeCooldown=2;log('Торговый караван продал излишки продовольствия: +28 монет, -12 пищи.');renderUI();save();}function buildGranary(){if(state.granary||state.treasury<65)return;state.treasury-=65;state.granary=true;log('Амбар построен. Урожай каждого сезона увеличен.');renderUI();save();}function advanceSeason(){
+function economyTick(){const lands=Math.max(1,Number((($('landLabel')?.textContent||'5').match(/\d+/)||['5'])[0]));const taxRate=state.tax==='low'?1:state.tax==='high'?3:2;const income=lands*taxRate;state.treasury+=income;const harvest=lands*(state.granary?5:3);state.food+=harvest;const populationUse=Math.max(1,Math.ceil(state.population/450));const armyUse=state.army?Math.max(1,Math.ceil(state.army.troops/12)+Math.ceil((state.army.units?.cavalry||0)/18)):0;state.food=Math.max(0,state.food-populationUse-armyUse);state.treasury=Math.max(0,state.treasury-armyUse);if(state.food===0){state.unrest=Math.min(100,state.unrest+12);state.morale=Math.max(0,state.morale-8);state.population=Math.max(100,state.population-25);log('Голод: запасы пищи исчерпаны. Население и боевой дух падают.');}else{state.unrest=Math.max(0,state.unrest+(state.tax==='high'?8:state.tax==='low'?-5:0)-2);if(state.unrest>70){state.morale=Math.max(0,state.morale-5);log('В городах растёт недовольство из-за налогового бремени.');}}if(state.tradeCooldown>0)state.tradeCooldown--;log('Доход казны: +'+income+' монет. Урожай: +'+harvest+' пищи; потребление: -'+(populationUse+armyUse)+'.');
+ const dip=state.diplomacy;
+ if(dip.tradeTurns>0){state.treasury+=6;state.food+=3;dip.tradeTurns--;log('Торговый договор с Вейром: +6 монет и +3 пищи.');if(!dip.tradeTurns)log('Срок торгового договора завершился.');}
+ if(dip.allianceTurns>0){state.treasury+=2;state.supply=Math.min(100,state.supply+3);dip.allianceTurns--;if(!dip.allianceTurns)log('Срок союза с Вейром завершился.');}
+ if(dip.nonAggressionTurns>0){dip.nonAggressionTurns--;if(!dip.nonAggressionTurns)log('Пакт о ненападении с Вейром завершился.');}
+ if(dip.atWar){dip.relation=Math.max(-100,dip.relation-2);state.unrest=Math.min(100,state.unrest+2);}
+ renderDiplomacy();}function setTax(value){if(!['low','normal','high'].includes(value))return;state.tax=value;state.unrest=Math.max(0,Math.min(100,state.unrest+(value==='high'?4:value==='low'?-3:0)));log('Налоговая политика изменена: '+({low:'низкие налоги',normal:'обычные налоги',high:'высокие налоги'}[value])+'.');renderUI();save();}function trade(){if(state.tradeCooldown>0){log('Караван ещё не вернулся. Подождите один сезон.');return;}if(state.food<12){log('Недостаточно продовольствия для торгового каравана.');return;}state.food-=12;state.treasury+=28;state.tradeCooldown=2;log('Торговый караван продал излишки продовольствия: +28 монет, -12 пищи.');renderUI();save();}function buildGranary(){if(state.granary||state.treasury<65)return;state.treasury-=65;state.granary=true;log('Амбар построен. Урожай каждого сезона увеличен.');renderUI();save();}function advanceSeason(){
  state.turn++;economyTick();advanceSieges();state.weather=(state.weather+1)%weatherTypes.length;state.phase=(state.phase+1)%4;
  state.supply=Math.max(0,state.supply-(state.army?.path?.length?7:2)*weather().supply);
  state.population=Math.max(0,state.population+Math.max(1,Math.round(state.population*.006)));
@@ -301,7 +341,7 @@ const simPanel=$('worldSim');
 const coreArmyLabel=$('armyLabel');if(coreArmyLabel)new MutationObserver(()=>renderUI()).observe(coreArmyLabel,{childList:true,subtree:true,characterData:true});
 const armyBtn=document.createElement('button');armyBtn.className='btn';armyBtn.id='simRaise';armyBtn.textContent='Сформировать отряд';$('simTrain').before(armyBtn);armyBtn.addEventListener('click',createArmy);$('simRecall').addEventListener('click',recallArmy);
 document.querySelectorAll('[data-formation]').forEach(b=>b.addEventListener('click',()=>chooseFormation(b.dataset.formation)));
-const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});let lastCoreTurn=$('turnLabel')?.textContent||'';if($('turnLabel'))new MutationObserver(()=>{const now=$('turnLabel').textContent;if(now!==lastCoreTurn){lastCoreTurn=now;economyTick();renderUI();save();}}).observe($('turnLabel'),{childList:true,subtree:true,characterData:true});
+const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});let lastCoreTurn=$('turnLabel')?.textContent||'';if($('turnLabel'))new MutationObserver(()=>{const now=$('turnLabel').textContent;if(now!==lastCoreTurn){lastCoreTurn=now;advanceSeason();}}).observe($('turnLabel'),{childList:true,subtree:true,characterData:true});
 window.addEventListener('resize',updatePoints,{passive:true});
 syncTiles();
 if(state.army&&(!tiles[state.army.tile]))state.army=null;
