@@ -32,7 +32,7 @@
  function line(x1,y1,x2,y2,color,width,dash){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore()}
  function soldier(x,y,scale,angle,shade,step=0,team='player',unitType=0){
   if(unitAtlas.complete&&unitAtlas.naturalWidth>0){
-   const gait=Math.sin(step),lift=Math.max(0,gait)*.8,frame=(team==='rival'?3:0)+(unitType%3);
+   const gait=Math.sin(step),lift=Math.max(0,gait)*.8,frame=unitType===3?(team==='rival'?7:6):(team==='rival'?3:0)+(unitType%3);
    ctx.save();ctx.translate(x,y-lift);ctx.rotate(angle);ctx.globalAlpha=1;
    ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,4,5.5,2.1,0,0,Math.PI*2);ctx.fill();
    ctx.drawImage(unitAtlas,frame*64,Math.abs(step)>.01?80:0,64,80,-10,-17,20,25);
@@ -74,7 +74,7 @@
   for(let i=0;i<count;i++){
    const row=Math.floor(i/cols),col=i%cols,offsetX=(col-1)*6.5*scale+(row%2?2:0),offsetY=(row-1)*5.5*scale;
    const bob=moving?Math.sin(t*10+i*1.7)*1.4:Math.sin(t*2+i)*.35;
-   soldier(x+offsetX,y+offsetY+bob,scale*.9,moving?facing+Math.sin(t*7+i)*.025:0,shade,moving?t*9+i*1.7:0,'player',i%3);
+   soldier(x+offsetX,y+offsetY+bob,scale*.9,moving?facing+Math.sin(t*7+i)*.025:0,shade,moving?t*9+i*1.7:0,'player',i===0?3:i%3);
   }
   banner(x-9*scale,y-3*scale,scale,a.phase+t*.8,'#d2ad64');
   ctx.restore();
