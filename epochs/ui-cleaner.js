@@ -16,7 +16,7 @@
  function cleanSpecial(){
   const crest=document.querySelector('.crest');if(crest&&crest.textContent.trim()!=='Э')crest.textContent='Э';
   const avatar=document.querySelector('.avatar');if(avatar&&avatar.textContent.trim()!=='А')avatar.textContent='А';
-  const eventMark=document.querySelector('#eventIcon');if(eventMark&&/[\p{Extended_Pictographic}]/u.test(eventMark.textContent))eventMark.textContent='СОБЫТИЕ';
+  const eventMark=document.querySelector('#eventIcon');if(eventMark&&!eventMark.textContent.trim())eventMark.textContent='СОБЫТИЕ';
  }
  cleanTree(document.body);cleanSpecial();
  new MutationObserver(records=>{
