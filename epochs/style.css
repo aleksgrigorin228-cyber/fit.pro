@@ -205,3 +205,12 @@ body:after{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;opac
 .tile.frontier{animation:frontierPulse 3.8s ease-in-out infinite alternate}
 @keyframes frontierPulse{to{border-color:#e6d49b88;filter:brightness(1.1)}}
 @media(prefers-reduced-motion:reduce){.tile.owner-rival:before,.tile.frontier{animation:none}}
+
+/* EPOHI 0.9.0 — persistent siege damage and rebuilding */
+.tile.city-damaged{filter:saturate(.72) brightness(.88)}
+.tile.city-damaged:after{background:repeating-linear-gradient(125deg,transparent 0 9px,#1b17131c 10px,#1b17131c 12px,transparent 13px 23px)}
+.tile.city-ruined{filter:saturate(.48) brightness(.68)}
+.tile.city-ruined:before{border-color:#8b7862!important;box-shadow:0 0 12px #17120f!important;opacity:.8}
+.tile.under-siege{box-shadow:inset 0 0 0 2px #d98a58,0 0 24px #dc784c66!important;animation:siegePulse 1.7s ease-in-out infinite alternate}
+@keyframes siegePulse{to{box-shadow:inset 0 0 0 2px #f0bd78,0 0 35px #dc784c99}}
+@media(prefers-reduced-motion:reduce){.tile.under-siege{animation:none}}

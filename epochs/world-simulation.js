@@ -14,10 +14,10 @@ const weatherTypes = [
   {id:'snow',name:'Снег',icon:'❄️',speed:.58,combat:.88,supply:.76}
 ];
 const terrainNames = { 'terrain-plains':'Равнина','terrain-forest':'Лес','terrain-mountain':'Горы','terrain-river':'Переправа','terrain-water':'Вода' };
-const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0});
+const fresh = () => ({version:1,turn:1,weather:0,supply:100,morale:82,selected:-1,army:null,events:['Оперативная карта готова. Отметьте область и отправьте туда войско.'],captured:[],phase:1,population:1250,development:[],fire:null,treasury:120,food:90,tax:'normal',unrest:12,granary:false,tradeCooldown:0,sieges:[],cityDamage:{}});
 function load(){
   try { const x=JSON.parse(localStorage.getItem(KEY)||'null'); if(!x||x.version!==1)return fresh();
-    return {...fresh(),...x,events:Array.isArray(x.events)?x.events.slice(0,12):[],captured:Array.isArray(x.captured)?x.captured:[]};
+    return {...fresh(),...x,events:Array.isArray(x.events)?x.events.slice(0,12):[],captured:Array.isArray(x.captured)?x.captured:[],sieges:Array.isArray(x.sieges)?x.sieges:[],cityDamage:x.cityDamage&&typeof x.cityDamage==='object'?x.cityDamage:{}};
   } catch(_){return fresh();}
 }
 let state=load(), tiles=[], points=[], lastFrame=0, raf=0, particles=[];
@@ -33,6 +33,7 @@ function tileName(tile,i){return tile.querySelector('.tile-name')?.textContent?.
 function syncTiles(){
  tiles=getTiles();
  state.captured.forEach(i=>{const t=tiles[i];if(t){t.classList.remove('owner-rival','owner-neutral');t.classList.add('owner-player');}});
+ tiles.forEach((t,i)=>{const damage=Number(state.cityDamage[i]||0);t.classList.toggle('city-damaged',damage>0);t.classList.toggle('city-ruined',damage>=3);t.classList.toggle('under-siege',state.sieges.some(x=>x.tile===i));});
  if(state.selected>=tiles.length)state.selected=-1;
 }
 function makeUI(){
@@ -63,7 +64,7 @@ function renderUI(){
  $('simArmy').textContent=army?army.troops+' воинов':'Нет войска';
  const march=$('simMarch');march.disabled=!army||state.selected<0||state.selected===army.tile||army.path?.length>0;
  const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected);
- $('simSelection').textContent=sel?'Цель: '+tileName(sel,state.selected)+' · '+terrainNames[tileTerrain(sel)]+' · '+(tileOwner(sel)==='rival'?'вражеская территория':tileOwner(sel)==='player'?'ваша территория':'нейтральная область'):'Выберите область на карте, чтобы проложить маршрут.';
+ const activeSiege=sel&&state.sieges.find(x=>x.tile===state.selected);$('simSelection').textContent=sel?'Цель: '+tileName(sel,state.selected)+' · '+terrainNames[tileTerrain(sel)]+' · '+(activeSiege?'ОСАДА '+Math.min(3,Math.floor(activeSiege.progress))+'/3':tileOwner(sel)==='rival'?'вражеская территория':tileOwner(sel)==='player'?'ваша территория':'нейтральная область'):'Выберите область на карте, чтобы проложить маршрут.';
  renderLog();renderEconomy();
 }
 function neighbors(i){const row=Math.floor(i/9),col=i%9,out=[];if(col>0)out.push(i-1);if(col<8)out.push(i+1);if(row>0)out.push(i-9);if(row<6)out.push(i+9);return out.filter(n=>n<tiles.length);}
@@ -85,11 +86,19 @@ function march(){
  renderUI();save();
 }
 function battle(army,target){
- const tile=tiles[target],owner=tileOwner(tile),terrain=tileTerrain(tile),weatherMod=weather().combat;
+ const tile=tiles[target],owner=tileOwner(tile);
+ if(owner==='rival'&&tile.classList.contains('city')){
+   if(!state.sieges.some(x=>x.tile===target)){
+     state.sieges.push({tile:target,progress:0,started:state.turn});
+     state.cityDamage[target]=Math.max(0,Number(state.cityDamage[target]||0));
+     log('Город «'+tileName(tile,target)+'» окружён. Началась осада: перекрыты дороги и подвоз припасов.');
+   }
+   state.morale=Math.max(0,state.morale-3);return;
+ }
+ const terrain=tileTerrain(tile),weatherMod=weather().combat;
  const defense=owner==='rival'?18+Math.floor(state.turn*1.4):owner==='neutral'?7+Math.floor(state.turn*.45):0;
  const terrainDefense=terrain==='terrain-mountain'?1.45:terrain==='terrain-forest'?1.2:terrain==='terrain-river'?1.3:1;
- const attack=army.troops*(.55+state.morale/200)*weatherMod;
- const defensePower=defense*terrainDefense;
+ const attack=army.troops*(.55+state.morale/200)*weatherMod,defensePower=defense*terrainDefense;
  if(owner==='player'){log('Отряд прибыл в дружественную область.');return;}
  const losses=Math.min(army.troops,Math.max(1,Math.round(defensePower*.22+army.troops*.07)));
  army.troops-=losses;state.morale=Math.max(0,state.morale-(owner==='rival'?13:5));
@@ -103,13 +112,37 @@ function battle(army,target){
    else{army.path=[];army.target=army.tile;state.supply=Math.max(0,state.supply-18);}
  }
 }
+function advanceSieges(){
+ const completed=[];
+ state.sieges.forEach(siege=>{
+   const tile=tiles[siege.tile],army=state.army;
+   if(!tile||tileOwner(tile)!=='rival'){completed.push(siege.tile);return;}
+   if(!army||army.tile!==siege.tile||army.path?.length)return;
+   if(army.troops<=0||state.supply<8){log('Осада «'+tileName(tile,siege.tile)+'» остановлена: войску не хватает сил или припасов.');return;}
+   const gain=Math.max(.55,Math.min(1.15,army.troops/38))*((state.morale<25)?.7:1);
+   siege.progress=Math.min(3,siege.progress+gain);
+   const damage=Math.min(3,Math.floor(siege.progress+.25));
+   state.cityDamage[siege.tile]=Math.max(Number(state.cityDamage[siege.tile]||0),damage);
+   const losses=Math.max(1,Math.round(army.troops*.025+(3-state.supply/50)));
+   army.troops=Math.max(0,army.troops-losses);state.supply=Math.max(0,state.supply-8);state.morale=Math.max(0,state.morale-2);
+   log('Осадные орудия обстреливают «'+tileName(tile,siege.tile)+'». Стены повреждены ('+Math.floor(siege.progress)+'/3). Потери осаждающих: '+losses+'.');
+   if(siege.progress>=3&&army.troops>0){
+     state.captured=[...new Set([...state.captured,siege.tile])];
+     tile.classList.remove('owner-rival','owner-neutral','under-siege');tile.classList.add('owner-player','city-ruined');
+     state.cityDamage[siege.tile]=3;completed.push(siege.tile);state.morale=Math.min(100,state.morale+10);
+     log('Стены пали! Город «'+tileName(tile,siege.tile)+'» захвачен. Он сильно разрушен и нуждается в восстановлении.');
+   }else if(army.troops<=0){completed.push(siege.tile);log('Осадный отряд уничтожен у стен «'+tileName(tile,siege.tile)+'».');state.army=null;}
+ });
+ if(completed.length)state.sieges=state.sieges.filter(x=>!completed.includes(x.tile));
+ syncTiles();
+}
 function economyTick(){const lands=Math.max(1,Number((($('landLabel')?.textContent||'5').match(/\d+/)||['5'])[0]));const taxRate=state.tax==='low'?1:state.tax==='high'?3:2;const income=lands*taxRate;state.treasury+=income;const harvest=lands*(state.granary?5:3);state.food+=harvest;const populationUse=Math.max(1,Math.ceil(state.population/450));const armyUse=state.army?Math.max(1,Math.ceil(state.army.troops/12)):0;state.food=Math.max(0,state.food-populationUse-armyUse);state.treasury=Math.max(0,state.treasury-armyUse);if(state.food===0){state.unrest=Math.min(100,state.unrest+12);state.morale=Math.max(0,state.morale-8);state.population=Math.max(100,state.population-25);log('Голод: запасы пищи исчерпаны. Население и боевой дух падают.');}else{state.unrest=Math.max(0,state.unrest+(state.tax==='high'?8:state.tax==='low'?-5:0)-2);if(state.unrest>70){state.morale=Math.max(0,state.morale-5);log('В городах растёт недовольство из-за налогового бремени.');}}if(state.tradeCooldown>0)state.tradeCooldown--;log('Доход казны: +'+income+' монет. Урожай: +'+harvest+' пищи; потребление: -'+(populationUse+armyUse)+'.');}function setTax(value){if(!['low','normal','high'].includes(value))return;state.tax=value;state.unrest=Math.max(0,Math.min(100,state.unrest+(value==='high'?4:value==='low'?-3:0)));log('Налоговая политика изменена: '+({low:'низкие налоги',normal:'обычные налоги',high:'высокие налоги'}[value])+'.');renderUI();save();}function trade(){if(state.tradeCooldown>0){log('Караван ещё не вернулся. Подождите один сезон.');return;}if(state.food<12){log('Недостаточно продовольствия для торгового каравана.');return;}state.food-=12;state.treasury+=28;state.tradeCooldown=2;log('Торговый караван продал излишки продовольствия: +28 монет, -12 пищи.');renderUI();save();}function buildGranary(){if(state.granary||state.treasury<65)return;state.treasury-=65;state.granary=true;log('Амбар построен. Урожай каждого сезона увеличен.');renderUI();save();}function advanceSeason(){
- state.turn++;economyTick();state.weather=(state.weather+1)%weatherTypes.length;state.phase=(state.phase+1)%4;
+ state.turn++;economyTick();advanceSieges();state.weather=(state.weather+1)%weatherTypes.length;state.phase=(state.phase+1)%4;
  state.supply=Math.max(0,state.supply-(state.army?.path?.length?7:2)*weather().supply);
  state.population=Math.max(0,state.population+Math.max(1,Math.round(state.population*.006)));
  state.development.forEach(x=>x.remaining--);
  const finished=state.development.filter(x=>x.remaining<=0);state.development=state.development.filter(x=>x.remaining>0);
- finished.forEach(x=>{state.population+=100;state.morale=Math.min(100,state.morale+4);log('Развитие поселения завершено: '+tileName(tiles[x.tile],x.tile)+'. Население выросло.');});
+ finished.forEach(x=>{state.population+=100;state.morale=Math.min(100,state.morale+4);if(state.cityDamage[x.tile]){delete state.cityDamage[x.tile];log('Восстановление города «'+tileName(tiles[x.tile],x.tile)+'» завершено: стены и кварталы отстроены.');}else{log('Развитие поселения завершено: '+tileName(tiles[x.tile],x.tile)+'. Население выросло.');}});
  if(state.fire){state.fire.turns--;if(state.fire.turns<=0){log('Пожар в поселении потушен.');state.fire=null;}}
  if(!state.fire&&state.turn%7===0){const cities=tiles.map((t,i)=>({t,i})).filter(x=>x.t.classList.contains('city')&&tileOwner(x.t)==='player');if(cities.length){const c=cities[state.turn%cities.length];state.fire={tile:c.i,turns:2};state.supply=Math.max(0,state.supply-8);state.morale=Math.max(0,state.morale-3);log('Пожар в поселении «'+tileName(c.t,c.i)+'»! Пожарные команды работают.');}}
  if(state.supply<25){state.morale=Math.max(0,state.morale-7);if(state.army)state.army.troops=Math.max(0,state.army.troops-1);log('Недостаток снабжения ослабляет войско.');}
@@ -118,7 +151,7 @@ function economyTick(){const lands=Math.max(1,Number((($('landLabel')?.textConte
  log('Наступил новый сезон. Погода: '+weather().name+'.');
  renderUI();save();
 }
-function developCity(){const i=state.selected,t=tiles[i];if(!t||!t.classList.contains('city')||tileOwner(t)!=='player'||state.development.some(x=>x.tile===i))return;if(state.supply<15){log('Недостаточно запасов для городских работ.');return;}state.supply-=15;state.development.push({tile:i,remaining:3});log('Начато развитие поселения «'+tileName(t,i)+'». Завершение через 3 сезона.');renderUI();save();}
+function developCity(){const i=state.selected,t=tiles[i];if(!t||!t.classList.contains('city')||tileOwner(t)!=='player'||state.development.some(x=>x.tile===i))return;if(state.supply<15){log('Недостаточно запасов для городских работ.');return;}state.supply-=15;state.development.push({tile:i,remaining:3});log((state.cityDamage[i]?'Начато восстановление разрушенного города «':'Начато развитие поселения «')+tileName(t,i)+'». Завершение через 3 сезона.');renderUI();save();}
 function train(){state.morale=Math.min(100,state.morale+12);state.supply=Math.max(0,state.supply-3);log('Войско провело учения. Боевой дух повышен, запасы немного уменьшились.');renderUI();save();}
 function createArmy(){
  if(state.army){log('Полевой отряд уже находится на карте.');return;}
@@ -145,6 +178,8 @@ function draw(t){
  const w=canvas.clientWidth,h=canvas.clientHeight;ctx.clearRect(0,0,w,h);
  const phase=state.phase%4;if(phase===0)ctx.fillStyle='rgba(242,176,105,.055)';else if(phase===2)ctx.fillStyle='rgba(216,125,80,.075)';else if(phase===3)ctx.fillStyle='rgba(7,13,25,.27)';else ctx.fillStyle='rgba(245,222,160,.018)';ctx.fillRect(0,0,w,h);
  state.development.forEach(d=>{const p=points[d.tile];if(p){ctx.strokeStyle='rgba(239,203,115,.85)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,10+Math.sin(t*4)*2,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#f1d58b';ctx.font='9px system-ui';ctx.textAlign='center';ctx.fillText('🏗',p.x,p.y-13);}});
+ state.sieges.forEach(siege=>{const p=points[siege.tile];if(!p)return;const sc=Math.min(p.w,p.h)/48;ctx.save();ctx.translate(p.x,p.y);ctx.strokeStyle='rgba(225,194,125,.85)';ctx.lineWidth=1.6;ctx.setLineDash([3,3]);ctx.beginPath();ctx.arc(0,0,Math.max(10,p.w*.38),0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#46382b';ctx.fillRect(-p.w*.28,p.h*.2,p.w*.56,Math.max(3,3*sc));ctx.strokeStyle='#c5a66b';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-p.w*.2,p.h*.2);ctx.lineTo(-p.w*.2,p.h*.02);ctx.lineTo(-p.w*.08,p.h*.02);ctx.moveTo(p.w*.12,p.h*.2);ctx.lineTo(p.w*.12,p.h*.02);ctx.lineTo(p.w*.25,p.h*.02);ctx.stroke();for(let n=0;n<3;n++){const smoke=Math.sin(t*3+n*2)*3;ctx.fillStyle='rgba(70,70,63,.3)';ctx.beginPath();ctx.arc((n-1)*4*sc,-p.h*.22-Math.abs(smoke),3*sc+n,0,Math.PI*2);ctx.fill();}ctx.restore();});
+
  if(state.fire&&points[state.fire.tile]){const p=points[state.fire.tile];for(let i=0;i<5;i++){const flicker=Math.sin(t*9+i*2)*3;ctx.fillStyle=i%2?'rgba(255,170,65,.78)':'rgba(226,75,42,.82)';ctx.beginPath();ctx.ellipse(p.x+(i-2)*3,p.y-8-Math.abs(flicker),3,7+Math.abs(flicker),0,0,Math.PI*2);ctx.fill();}}
  // Soft route glow and moving army marker.
  if(state.army&&points[state.army.tile]){
