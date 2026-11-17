@@ -12,6 +12,6 @@ Standalone browser strategy game. Open `index.html` in a modern browser; no buil
 ## Project files
 - `index.html` — app markup
 - `style.css` — responsive interface
-- `game.js` — world simulation and game logic
+- `game-loader.js` — loads the compressed game engine\n- `game-expansion.js` — achievements, optional objectives and the ruler's chronicle
 
-Version 0.1.0 — Foundation.
+Version 0.2.0 — The Chronicle.
