@@ -100,8 +100,22 @@
    // Rival shield line: small individual figures make a battle readable at map scale.
    ctx.save();ctx.globalAlpha=alpha*.92;
    const guards=[[-8,-8],[0,-12],[8,-8],[0,-3]];
-   guards.forEach(([ox,oy],i)=>{const spread=retreat+(clashType==='defeat'?Math.sin(t*6+i)*1.2:0);soldier(p.x+ox+spread,p.y+oy,Math.max(.42,Math.min(.65,p.size/68)),Math.sin(t*5+i)*.05,'#caa985',t*8+i*1.8,'rival',i%3);});
+   guards.forEach(([ox,oy],i)=>{const spread=retreat+(clashType==='defeat'?Math.sin(t*6+i)*1.2:0);soldier(p.x+ox+spread,p.y+oy,Math.max(.42,Math.min(.65,p.size/68)),Math.sin(t*5+i)*.05,'#caa985',t*8+i*1.8,'rival',i===0?3:i%3);});
    banner(p.x+11,p.y-6,.45,t*1.5,'#a64c42');
+   // Three archer volleys cross the clash in staggered flight paths.
+   if(clashType==='victory'||clashType==='defeat'){
+    for(let k=0;k<3;k++){
+     const phase=age*1.25+k*.19;
+     if(phase>=0&&phase<=1){
+      const q=phase,ax=p.x-17+q*34,ay=p.y+9-q*18-Math.sin(q*Math.PI)*7+k*2.1;
+      const tailX=ax-5,tailY=ay+3;
+      ctx.save();ctx.globalAlpha=alpha*(.85-q*.25);ctx.strokeStyle='#d5bd8c';ctx.lineWidth=1.1;ctx.lineCap='round';ctx.shadowColor='#1a1712';ctx.shadowBlur=2;
+      ctx.beginPath();ctx.moveTo(tailX,tailY);ctx.lineTo(ax,ay);ctx.stroke();
+      ctx.fillStyle='#d8d2bd';ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax-3,ay-2);ctx.lineTo(ax-2,ay+2);ctx.closePath();ctx.fill();
+      ctx.restore();
+     }
+    }
+   }
    ctx.restore();
    // Crossing blade arcs and quick impact sparks.
    ctx.save();ctx.translate(p.x,p.y);ctx.globalAlpha=alpha;ctx.strokeStyle=clashColor;ctx.lineWidth=2;ctx.lineCap='round';ctx.shadowColor=clashColor;ctx.shadowBlur=8;
