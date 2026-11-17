@@ -14,6 +14,25 @@ function tree(x,y,s,n){oval(x+s,y+4*s,5*s,2*s,'#18281d88');poly([[x,y-10*s],[x-7
 function peak(x,y,s,n){poly([[x-16*s,y+9*s],[x-5*s,y-14*s],[x+1*s,y-4*s],[x+9*s,y-18*s],[x+18*s,y+9*s]],'#656b61','#3e4941',s);poly([[x-5*s,y-14*s],[x+1*s,y-4*s],[x-3*s,y+1*s],[x-9*s,y-1*s]],'#d0cdb9','#838579',.7*s);poly([[x+9*s,y-18*s],[x+18*s,y+9*s],[x+4*s,y+5*s]],'#d9d4c1','#7c8074',.7*s);}
 function bridge(x,y,w,h,n){const s=Math.min(w,h)/52,ax=x+w*.32,ay=y+h*.68,bx=x+w*.68,by=y+h*.32,dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;ln([[ax,ay+2*s],[bx,by+2*s]],'#172c2d88',8*s);ln([[ax,ay],[bx,by]],'#493827',7*s);ln([[ax,ay-.2*s],[bx,by-.2*s]],'#a78253',5*s);for(let k=0;k<=6;k++){const t=k/6,px=ax+dx*t,py=ay+dy*t;ln([[px-nx*2.2*s,py-ny*2.2*s],[px+nx*2.2*s,py+ny*2.2*s]],'#62482f',.85*s);}for(const side of [-1,1]){const ox=nx*3.4*s*side,oy=ny*3.4*s*side;ln([[ax+ox,ay+oy],[bx+ox,by+oy]],'#5a422d',1.5*s);ln([[ax+ox,ay+oy-.55*s],[bx+ox,by+oy-.55*s]],'#c1a06c',.7*s);for(const t of [0,.18,.82,1]){const px=ax+dx*t+ox,py=ay+dy*t+oy;oval(px,py,1.05*s,1.05*s,'#d2b17a');}}ln([[ax,ay],[bx,by]],'#d3b17a',.45*s);}
 function hut(x,y,s,n,keep=false){const roof=rnd(n+2)>.5?'#87543d':'#684333';poly([[x-7*s,y-2*s],[x+7*s,y-2*s],[x+7*s,y+7*s],[x-7*s,y+7*s]],keep?'#c2b28e':'#b3a17d','#554d3d',s*.7);poly([[x-9*s,y-2*s],[x,y-10*s],[x+9*s,y-2*s],[x+5*s,y+1*s],[x,y-4*s],[x-5*s,y+1*s]],roof,'#4b362b',s*.7);if(keep){ln([[x,y-10*s],[x,y-16*s]],'#e5d6b1',s);poly([[x-3*s,y-16*s],[x+4*s,y-14*s],[x-3*s,y-12*s]],'#b64d3c',null);}}
+function roadLinked(a,b){
+ const low=Math.min(a,b),high=Math.max(a,b),sameRow=Math.floor(low/9)===Math.floor(high/9),col=low%9,row=Math.floor(low/9),chance=rnd(low*31+high*17+9);
+ return sameRow?(row%2===0||chance>.79):(col%3===1||chance>.84);
+}
+function drawRoads(x,y,w,h,i){
+ const row=Math.floor(i/9),col=i%9,cx=x+w*.5,cy=y+h*.5,links=[];
+ const candidates=[
+  {j:col>0?i-1:-1,p:[x+w*.25,y+h*.25]},
+  {j:col<8?i+1:-1,p:[x+w*.75,y+h*.75]},
+  {j:row>0?i-9:-1,p:[x+w*.75,y+h*.25]},
+  {j:row<6&&i+9<tiles.length?i+9:-1,p:[x+w*.25,y+h*.75]}
+ ];
+ for(const edge of candidates){if(edge.j<0||!tiles[edge.j]||tiles[edge.j].classList.contains('terrain-water'))continue;if(roadLinked(i,edge.j))links.push(edge.p);}
+ if(!links.length)return;
+ const width=Math.max(1,Math.min(w,h)*.055);
+ for(const p of links){const points=[[cx,cy],p];ln(points,'#29271fbb',width*2.25);ln(points,'#a68b5e',width*1.35);ln(points,'#d7c18b88',Math.max(.55,width*.28));}
+ // Flattened stones and wheel grooves break up the perfect line.
+ if(links.length>1){oval(cx,cy,width*.95,width*.45,'#b69a6a');}
+}
 function city(r,tile,n,time){const {x,y,w,h}=r,s=Math.min(w,h)/54,ruin=tile.classList.contains('city-ruined'),damage=tile.classList.contains('city-damaged'),stone=ruin?'#68665b':'#b6a783';
  poly([[x+w*.12,y+h*.33],[x+w*.5,y+h*.15],[x+w*.88,y+h*.33],[x+w*.88,y+h*.7],[x+w*.5,y+h*.87],[x+w*.12,y+h*.7]],ruin?'#57574e':'#a99b7b','#4c4c40',s);
  poly([[x+w*.12,y+h*.33],[x+w*.5,y+h*.51],[x+w*.5,y+h*.87],[x+w*.12,y+h*.7]],ruin?'#414840':'#857a63','#3e443b',s*.8);
@@ -26,8 +45,26 @@ function city(r,tile,n,time){const {x,y,w,h}=r,s=Math.min(w,h)/54,ruin=tile.clas
  poly([[x+w*.45,y+h*.68],[x+w*.55,y+h*.68],[x+w*.55,y+h*.84],[x+w*.45,y+h*.84]],'#302e27',null);ln([[x+w*.5,y+h*.83],[x+w*.5,y+h*.98]],'#c4a977',2*s);
  const fx=x+w*.5,fy=y+h*.22,flutter=Math.sin(time*2.4+n)*2*s;ln([[fx,fy-5*s],[fx,fy+7*s]],'#e2d4ae',s);poly([[fx,fy-5*s],[fx+9*s,fy-3*s+flutter],[fx,fy+flutter]],tile.classList.contains('owner-rival')?'#a64c42':'#b68a43','#493b2b',.55*s);
  poly([[x+w*.24,y+h*.61],[x+w*.33,y+h*.59],[x+w*.34,y+h*.63],[x+w*.25,y+h*.65]],'#a44e3e','#55382d',.6*s);ln([[x+w*.25,y+h*.65],[x+w*.25,y+h*.69]],'#5a4835',s);ln([[x+w*.33,y+h*.63],[x+w*.33,y+h*.68]],'#5a4835',s);
+ // Working chimneys: slow, layered smoke remains visible without obscuring the skyline.
+ if(!ruin){for(let k=0;k<3;k++){const drift=Math.sin(time*1.35+k*1.6+n)*1.35*s,fade=.19-k*.045;oval(x+w*.62+drift,y+h*.285-k*3.7*s,(1.1+k*.42)*s,(1.05+k*.34)*s,'rgba(54,61,53,'+fade+')');}
+   // A tiny forge glow and rising sparks give the settlement a sense of activity.
+   const forgeX=x+w*.29,forgeY=y+h*.65;oval(forgeX,forgeY,2.5*s,1.25*s,'#e49a4f99');for(let k=0;k<3;k++){const rise=(time*3.2+k*2.3+n*.07)%7;oval(forgeX+Math.sin(time*2+k)*1.6*s,forgeY-rise*s,.55*s,.8*s,'#edc27a99');}
+ }
  if(damage||ruin)for(let k=0;k<(ruin?6:2);k++){const xx=x+w*(.2+rnd(n+k)*.6),yy=y+h*(.35+rnd(n+k+8)*.35);poly([[xx-5*s,yy],[xx,yy-4*s],[xx+5*s,yy+2*s],[xx+2*s,yy+5*s]],'#4a4a40','#292e29',.6*s);ln([[xx-4*s,yy-4*s],[xx+4*s,yy+4*s]],'#2e302b',.7*s);}
- if(tile.classList.contains('under-siege')){const xx=x+w*.08,yy=y+h*.48;poly([[xx,yy],[xx+w*.13,yy-h*.05],[xx+w*.13,yy+h*.25],[xx,yy+h*.29]],'#795b39','#423326',s);for(let k=0;k<3;k++)ln([[xx,yy+h*(.07+k*.07)],[xx+w*.13,yy+h*(.02+k*.07)]],'#c5a16b',s);for(let k=0;k<4;k++)oval(x+w*(.26+k*.035)+Math.sin(time*2+k)*2*s,y+h*.13-k*2*s,2*s+k*s,3*s+k*s,'#45463e55');}
+ if(tile.classList.contains('under-siege')){
+   const xx=x+w*.08,base=y+h*.76,tw=w*.14,th=h*.34,shake=Math.sin(time*4+n)*.6*s;
+   // Mobile wooden siege tower with braced frame, covered roof and rolling wheels.
+   poly([[xx,base-th],[xx+tw*.5,base-th-h*.045],[xx+tw,base-th],[xx+tw,base],[xx,base]],'#76583a','#3d3025',.8*s);
+   poly([[xx-tw*.1,base-th],[xx+tw*.5,base-th-h*.08],[xx+tw*1.1,base-th]],'#49372a','#30271e',.8*s);
+   for(let k=0;k<3;k++){const yy=base-th+h*(.1+k*.095);ln([[xx+tw*.12,yy],[xx+tw*.88,yy]],'#c49a61',1.1*s);}
+   ln([[xx+tw*.12,base-th],[xx+tw*.12,base]],'#d0a36b',1.8*s);ln([[xx+tw*.88,base-th],[xx+tw*.88,base]],'#d0a36b',1.8*s);
+   ln([[xx+tw*.12,base-th*.66],[xx+tw*.88,base-th*.34]],'#b88d57',1.1*s);ln([[xx+tw*.88,base-th*.66],[xx+tw*.12,base-th*.34]],'#b88d57',1.1*s);
+   for(const wx of [xx+tw*.2,xx+tw*.8]){oval(wx,base+shake,2.7*s,2.7*s,'#342b22');oval(wx,base+shake,1*s,1*s,'#c29a60');}
+   // A low covered ram approaches the gate.
+   const rx=x+w*.27,ry=y+h*.72;poly([[rx,ry-3*s],[rx+w*.12,ry-3*s],[rx+w*.14,ry+2*s],[rx,ry+2*s]],'#5e442e','#34291e',.7*s);ln([[rx+2*s,ry-4*s],[rx+w*.13,ry-4*s]],'#b18b59',1.7*s);
+   for(let k=0;k<3;k++){const puff=(time*1.6+k*1.4+n)%4;oval(x+w*(.28+k*.035)+Math.sin(time*1.7+k)*2*s,y+h*.13-puff*2*s,(2+k*.65)*s,(3+k*.8)*s,'rgba(62,65,57,'+(.23-k*.035)+')');}
+   for(let k=0;k<3;k++){const spark=(time*4+k*2+n)%6;oval(x+w*.43+Math.sin(time*3+k)*2*s,y+h*.43-spark*s,.7*s,1*s,'#e69b53bb');}
+ }
 }
 function tile(r,tile,i,time){const {x,y,w,h}=r;if(w<2)return;const type=['terrain-forest','terrain-mountain','terrain-river','terrain-water'].find(v=>tile.classList.contains(v))||'terrain-plains',pal={'terrain-plains':['#788d56','#526d42'],'terrain-forest':['#315b3c','#1e432e'],'terrain-mountain':['#77796d','#535c52'],'terrain-river':['#4c7e80','#315b65'],'terrain-water':['#386b83','#20485f']};
 g.save();diamondPath(x+1,y+1,w-2,h-2);g.clip();const grad=g.createLinearGradient(x,y,x+w,y+h);grad.addColorStop(0,pal[type][0]);grad.addColorStop(1,pal[type][1]);g.fillStyle=grad;g.fillRect(x,y,w,h);
@@ -40,7 +77,8 @@ else{
  for(let k=0;k<2;k++){const tx=x+w*(.15+rnd(i+k)*.7),ty=y+h*(.22+rnd(i+k+4)*.55);tree(tx,ty,.3,i+k);}
  if(rnd(i+91)>.53){const mx=x+w*.73,my=y+h*.43,rot=time*.35+i;ln([[mx,my+8],[mx,my-9]],'#6d5236',1.5);poly([[mx-4,my-9],[mx+4,my-9],[mx+3,my-4],[mx-3,my-4]],'#b9a17a','#5a4a36',.7);for(let k=0;k<4;k++){const a=rot+k*Math.PI/2;ln([[mx,my-9],[mx+Math.cos(a)*9,my-9+Math.sin(a)*9]],'#e2d5b2',1.4);}}
 }
-if(type==='terrain-river'&&rnd(i+73)>.32)bridge(x,y,w,h,i);
+if(type==='terrain-river'&&((i>=9&&roadLinked(i,i-9))||(i+9<tiles.length&&roadLinked(i,i+9))))bridge(x,y,w,h,i);
+drawRoads(x,y,w,h,i);
 if(type!=='terrain-water'&&type!=='terrain-river')ln([[x+w*.02,y+h*.91],[x+w*.35,y+h*.73],[x+w*.67,y+h*.78],[x+w*.98,y+h*.56]],'#c4ab7955',Math.max(1,w*.025));
 if(tile.classList.contains('city'))city(r,tile,i,time);
 if(tile.classList.contains('owner-player')){diamondPath(x+1,y+1,w-2,h-2);g.fillStyle='#d7bb7738';g.fill();g.strokeStyle='#e6c982dd';g.lineWidth=1.5;g.stroke();}
