@@ -277,3 +277,54 @@ body:after{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;opac
 .sim-battle-values>div{padding:7px;background:#1b2929;border-radius:6px}.sim-battle-values span{display:block;color:#91a39c;font-size:8px}.sim-battle-values b{display:block;color:#f0dfb2;font:600 16px Georgia,serif;margin-top:3px}
 .sim-battle-rosters{display:grid;gap:4px;color:#aebdb3;font-size:9px;line-height:1.4}
 .sim-battle-preview p{margin:8px 0 0;color:#d2c69d;font-size:9px;line-height:1.45}.sim-battle-preview .sim-battle-note{color:#8ea49b}
+
+/* Full strategy layout: restore the court, inspector, research and chronicle. */
+.layout{
+ display:grid;
+ grid-template-columns:minmax(215px,245px) minmax(0,1fr) minmax(260px,300px);
+ gap:14px;
+ align-items:start;
+}
+.left-col,.right-col{
+ display:grid!important;
+ gap:12px;
+ min-width:0;
+}
+.map-panel{grid-column:auto;grid-row:auto;min-width:0}
+.left-col .panel,.right-col .panel{
+ border-radius:4px;
+ background:linear-gradient(155deg,#15262a,#0b171b);
+ border:1px solid #78948c35;
+ box-shadow:0 18px 42px #0005;
+}
+.left-col .panel-head,.right-col .panel-head{
+ padding:11px 12px 9px;
+ border-bottom:1px solid #8aa49a20;
+}
+.left-col .panel-head h2,.right-col .panel-head h2{
+ font-size:9px;letter-spacing:.14em;color:#c6c9b7;
+}
+.left-col .panel-body,.right-col .panel-body{padding:11px 12px}
+.left-col .btn,.right-col .btn{
+ border-radius:3px;background:#14272c;border-color:#627d753f;
+}
+.left-col .btn:hover,.right-col .btn:hover{background:#294047;border-color:#b5c4a277}
+.left-col .avatar{background:linear-gradient(145deg,#4f685d,#1a2c2d);border:1px solid #9b9b6c;color:#e5d6a9}
+.left-col .mission{background:#17272a;border-color:#5f776a55}
+.right-col .detail,.right-col .legacy-stat{background:#101c20;border-color:#829b9120}
+.right-col .build-option{background:#14252a;border-color:#708c8038}
+.right-col .build-option:hover{background:#20373a;border-color:#c3ae7555}
+.right-col .inspector-actions .btn{width:100%}
+@media(max-width:1220px){
+ .layout{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .map-panel{grid-column:1/-1;grid-row:1}
+ .left-col{grid-column:1;grid-row:2;grid-template-columns:1fr}
+ .right-col{grid-column:2;grid-row:2;grid-template-columns:1fr}
+}
+@media(max-width:760px){
+ .layout{grid-template-columns:minmax(0,1fr);gap:11px}
+ .map-panel{grid-column:1;grid-row:1}
+ .left-col{grid-column:1;grid-row:2;grid-template-columns:minmax(0,1fr)}
+ .right-col{grid-column:1;grid-row:3;grid-template-columns:minmax(0,1fr)}
+ .left-col .panel-body,.right-col .panel-body{padding:10px}
+}
