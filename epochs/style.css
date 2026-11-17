@@ -193,3 +193,15 @@ body:after{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;opac
 @keyframes mapReveal{from{opacity:0;filter:blur(10px);transform:scale(.985)}to{opacity:1;filter:blur(0);transform:scale(1)}}
 @media(max-width:700px){.resource .value{animation:none}.cinema-canvas{opacity:.7}}
 @media(prefers-reduced-motion:reduce){.resource .value{animation:none}.map-panel{animation:none}}
+
+/* EPOHI 0.8.0 — formation layer */
+.army-canvas{position:absolute;inset:0;z-index:6;pointer-events:none;overflow:visible}
+.map-wrap{isolation:isolate}
+.tile.owner-rival{position:relative}
+.tile.owner-rival:before{content:"";position:absolute;inset:18%;border:1px solid #d47b6c66;border-radius:50%;opacity:.5;pointer-events:none;animation:enemyPulse 4s ease-in-out infinite}
+@keyframes enemyPulse{50%{transform:scale(1.14);opacity:.15}}
+.tile.city.owner-rival{box-shadow:inset 0 0 0 1px #d47b6c88,0 0 18px #d47b6c22}
+.tile.city.owner-player{box-shadow:inset 0 0 0 1px #d7c17e99,0 0 20px #d7c17e22}
+.tile.frontier{animation:frontierPulse 3.8s ease-in-out infinite alternate}
+@keyframes frontierPulse{to{border-color:#e6d49b88;filter:brightness(1.1)}}
+@media(prefers-reduced-motion:reduce){.tile.owner-rival:before,.tile.frontier{animation:none}}
