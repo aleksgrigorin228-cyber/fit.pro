@@ -20,9 +20,9 @@
   if(!s?.army||!centers[s.army.tile]){visual=null;return}
   const a=s.army,path=Array.isArray(a.path)?a.path:[];
   if(!visual||visual.token!==String(a.tile)+':'+String(a.target)+':'+path.join(',')){
-   visual={token:String(a.tile)+':'+String(a.target)+':'+path.join(','),index:0,progress:0,tile:a.tile,path:[...path],troops:a.troops||24,phase:rand(0,6.28)};
+   visual={token:String(a.tile)+':'+String(a.target)+':'+path.join(','),index:0,progress:0,tile:a.tile,path:[...path],troops:a.troops||24,units:{...(a.units||{})},phase:rand(0,6.28)};
   }
-  visual.troops=a.troops||visual.troops;
+  visual.troops=a.troops||visual.troops;visual.units={...(a.units||{})};
   if(visual.path.length&&visual.index<visual.path.length){
    const next=visual.path[visual.index],v=speed(next,s);
    visual.progress+=dt*v;
@@ -32,10 +32,10 @@
  function line(x1,y1,x2,y2,color,width,dash){ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore()}
  function soldier(x,y,scale,angle,shade,step=0,team='player',unitType=0){
   if(unitAtlas.complete&&unitAtlas.naturalWidth>0){
-   const gait=Math.sin(step),lift=Math.max(0,gait)*.8,frame=unitType===3?(team==='rival'?7:6):(team==='rival'?3:0)+(unitType%3);
+   const gait=Math.sin(step),lift=Math.max(0,gait)*.8,frames=team==='rival'?[2,3,5,7]:[0,1,4,6],frame=frames[Math.max(0,Math.min(3,unitType|0))];
    ctx.save();ctx.translate(x,y-lift);ctx.rotate(angle);ctx.globalAlpha=1;
    ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,4,5.5,2.1,0,0,Math.PI*2);ctx.fill();
-   ctx.drawImage(unitAtlas,frame*64,Math.abs(step)>.01?80:0,64,80,-10,-17,20,25);
+   ctx.drawImage(unitAtlas,frame*64,Math.abs(step)>.01?80:0,64,80,-12*scale,-18*scale,24*scale,29*scale);
    ctx.restore();return;
   }
   const gait=Math.sin(step),lift=Math.max(0,gait)*.8;
@@ -56,6 +56,12 @@
 }
  function banner(x,y,t,phase=0,color='#b68a43'){const wave=Math.sin(phase)*2.1*t,wave2=Math.sin(phase+1.1)*1.6*t;ctx.save();ctx.strokeStyle='#d9c58e';ctx.lineWidth=1.45;ctx.beginPath();ctx.moveTo(x,y-22*t);ctx.lineTo(x,y+4*t);ctx.stroke();ctx.fillStyle=color;ctx.strokeStyle='#54372e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x+1,y-21*t);ctx.lineTo(x+11*t,y-19*t+wave);ctx.lineTo(x+8*t,y-14*t+wave2);ctx.lineTo(x+1,y-13*t);ctx.closePath();ctx.fill();ctx.stroke();ctx.strokeStyle='#d9b76e';ctx.lineWidth=.55;ctx.beginPath();ctx.moveTo(x+2*t,y-18*t);ctx.lineTo(x+7*t,y-17*t+wave*.6);ctx.stroke();ctx.fillStyle='#e2ca89';ctx.beginPath();ctx.arc(x,y+5*t,1.5*t,0,Math.PI*2);ctx.fill();ctx.restore()}
  function spawnDust(x,y){for(let i=0;i<2;i++)dust.push({x:x+rand(-5,5),y:y+rand(0,4),vx:rand(-8,8),vy:rand(-12,-3),life:1,r:rand(1,2.8)})}
+ function visibleRoster(units,total,count){
+  const keys=['infantry','spearmen','archers','cavalry'],sum=keys.reduce((n,k)=>n+Math.max(0,Number(units?.[k])||0),0)||total||1;
+  const raw=keys.map(k=>count*Math.max(0,Number(units?.[k])||0)/sum),slots=raw.map(Math.floor);let left=count-slots.reduce((a,b)=>a+b,0);
+  raw.map((v,i)=>({i,f:v-slots[i]})).sort((a,b)=>b.f-a.f).slice(0,left).forEach(x=>slots[x.i]++);
+  const roster=[];slots.forEach((n,i)=>{for(let j=0;j<n;j++)roster.push(i)});return roster;
+ }
  function drawFormation(t,dt,s){
   if(!visual)return;
   const a=visual,from=centers[a.tile];if(!from)return;
@@ -70,11 +76,11 @@
   }
   // Soft ground shadow and formation footprint.
   ctx.save();ctx.fillStyle='rgba(0,0,0,.42)';ctx.beginPath();ctx.ellipse(x,y+5*scale,13*scale,6*scale,0,0,Math.PI*2);ctx.fill();
-  const count=clamp(Math.round(a.troops/5),4,12),cols=3;
+  const count=clamp(Math.round(a.troops/5),4,12),cols=3,roster=visibleRoster(a.units,a.troops,count);
   for(let i=0;i<count;i++){
    const row=Math.floor(i/cols),col=i%cols,offsetX=(col-1)*6.5*scale+(row%2?2:0),offsetY=(row-1)*5.5*scale;
    const bob=moving?Math.sin(t*10+i*1.7)*1.4:Math.sin(t*2+i)*.35;
-   soldier(x+offsetX,y+offsetY+bob,scale*.9,moving?facing+Math.sin(t*7+i)*.025:0,shade,moving?t*9+i*1.7:0,'player',i===0?3:i%3);
+   soldier(x+offsetX,y+offsetY+bob,scale*.9,moving?facing+Math.sin(t*7+i)*.025:0,shade,moving?t*9+i*1.7:0,'player',roster[i]??0);
   }
   banner(x-9*scale,y-3*scale,scale,a.phase+t*.8,'#d2ad64');
   ctx.restore();

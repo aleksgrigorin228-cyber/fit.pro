@@ -244,3 +244,26 @@ body:after{content:"";position:fixed;inset:0;z-index:20;pointer-events:none;opac
 /* Keep region labels inside the narrow lower half of each isometric diamond. */
 .map-grid.isometric-map .tile .tile-name{left:22%;right:22%;bottom:29%;max-width:none;font-size:clamp(5px,.6vw,7px);line-height:1;padding:1px 2px;border-radius:3px;}
 @media(max-width:700px){.map-grid.isometric-map .tile .tile-name{left:22%;right:22%;bottom:29%;font-size:5px;padding:1px 1px}}
+
+/* Text-first command interface and unit composition. */
+.crest{font:700 20px Georgia,serif;letter-spacing:0;border-radius:50%;}
+.avatar{font:700 15px Georgia,serif;letter-spacing:.08em}
+.event-card .event-mark{font:700 9px system-ui;letter-spacing:.24em;color:var(--gold)}
+.tile .terrain-icon,.build-icon{display:none!important}
+.sim-army-builder{margin:12px 0;padding:12px;background:#101914;border:1px solid #d4b46a30;border-radius:11px}
+.sim-army-builder-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.sim-army-builder-head strong{font-size:12px;color:#ead9ae}
+.sim-army-builder-head p{font-size:10px;color:var(--muted);margin:4px 0 0;line-height:1.45}
+.sim-army-builder-head>span{font-size:10px;color:#e4d1a0;white-space:nowrap}
+.sim-formation-options{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 7px}
+.sim-formation-options .btn{font-size:9px;padding:7px 9px}
+.sim-formation-options .btn.active{border-color:#d8bd78;color:#f1d58b;background:#66552a44}
+.sim-formation-description{font-size:10px;color:#b5c2b0;min-height:15px;margin:5px 0 9px}
+.sim-roster-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}
+.sim-roster-card{display:flex;flex-direction:column;gap:3px;min-width:0;padding:8px;background:#1b2820;border:1px solid #ffffff12;border-radius:7px}
+.sim-roster-card strong{font-size:9px;color:#b6c4b4;font-weight:600}
+.sim-roster-card b{font:600 18px Georgia,serif;color:#f0dfb2}
+.sim-roster-card span{font-size:8px;color:#819285}
+.sim-roster-summary{font-size:9px;color:#97a99a;margin-top:8px;line-height:1.45}
+.build-icon:empty{display:none!important}
+@media(max-width:560px){.sim-roster-cards{grid-template-columns:repeat(2,minmax(0,1fr))}.sim-army-builder-head{align-items:flex-start;flex-direction:column}}
