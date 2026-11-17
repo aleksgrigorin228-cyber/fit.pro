@@ -79,7 +79,7 @@ function makeUI(){
  panel.innerHTML='<div class="sim-heading"><div><div class="eyebrow">ЖИВОЙ МИР · ТАКТИЧЕСКАЯ СИМУЛЯЦИЯ</div><h3>Оперативная карта</h3><p>Отправляйте отряды по областям. Рельеф, погода, снабжение и боевой дух влияют на исход похода.</p></div><span class="sim-version">0.6.0</span></div>'+
  '<div class="sim-stats"><div><span>Погода</span><b id="simWeather">Ясно</b></div><div><span>Время суток</span><b id="simPhase">День</b></div><div><span>Население</span><b id="simPopulation">1 250</b></div><div><span>Снабжение</span><b id="simSupply">100%</b></div><div><span>Боевой дух</span><b id="simMorale">82%</b></div><div><span>Отряд</span><b id="simArmy">Нет войска</b></div></div>'+
  '<div class="sim-economy"><div class="sim-economy-head"><strong>Казна и хозяйство</strong><span id="simEconomyStatus">Держава стабильна</span></div><div class="sim-economy-stats"><div>Казна <b id="simTreasury">120</b></div><div>Запасы пищи <b id="simFood">90</b></div><div>Налоги <b id="simTax">Обычные</b></div><div>Недовольство <b id="simUnrest">12%</b></div></div><div class="sim-policy"><span>Налоговая политика</span><button class="btn" data-tax="low">Низкие</button><button class="btn active" data-tax="normal">Обычные</button><button class="btn" data-tax="high">Высокие</button></div><div class="sim-actions"><button class="btn" id="simTrade">Торговый караван</button><button class="btn" id="simGranary">Построить амбар</button></div></div>'+'<section class="sim-army-builder"><div class="sim-army-builder-head"><div><strong>Подготовка войска</strong><p>Выберите тактику перед выходом. Состав влияет на бой и скорость марша.</p></div><span id="simFormationTotal">28 бойцов</span></div><div class="sim-formation-options"><button class="btn active" data-formation="balanced">Сбалансированный</button><button class="btn" data-formation="shieldwall">Стена щитов</button><button class="btn" data-formation="volley">Лучный обстрел</button><button class="btn" data-formation="cavalry">Кавалерийский натиск</button></div><p id="simFormationDescription" class="sim-formation-description"></p><div id="simRosterCards" class="sim-roster-cards"></div><div id="simRosterSummary" class="sim-roster-summary">Отряд ещё не сформирован.</div></section>'+
- '<div class="sim-actions"><button class="btn primary" id="simMarch" disabled>Отправить отряд</button><button class="btn" id="simTrain">Провести учения</button><button class="btn" id="simDevelop" disabled>Развивать город</button><button class="btn" id="simTurn">Сменить сезон</button></div>'+
+ '<div class="sim-actions"><button class="btn primary" id="simMarch" disabled>Отправить отряд</button><button class="btn" id="simRecall" disabled>Отозвать отряд</button><button class="btn" id="simTrain">Провести учения</button><button class="btn" id="simDevelop" disabled>Развивать город</button><button class="btn" id="simTurn">Сменить сезон</button></div>'+
  '<div class="sim-selection" id="simSelection">Выберите область на карте, чтобы проложить маршрут.</div>'+
  '<div class="sim-log"><div class="sim-log-title">Хроника похода</div><div id="simLog" aria-live="polite"></div></div>';
  mapPanel.appendChild(panel);
@@ -101,7 +101,8 @@ function renderUI(){
  const w=weather(),army=state.army;const phases=['Рассвет','День','Закат','Ночь'];
  $('simWeather').textContent=w.name;$('simPhase').textContent=phases[state.phase%4];$('simPopulation').textContent=Math.round(state.population).toLocaleString('ru-RU');$('simSupply').textContent=Math.round(state.supply)+'%';$('simMorale').textContent=Math.round(state.morale)+'%';
  $('simArmy').textContent=army?army.troops+' воинов':'Нет войска';
- const march=$('simMarch');march.disabled=!army||state.selected<0||state.selected===army.tile||army.path?.length>0;
+ const march=$('simMarch');march.disabled=!army||army.recalling||state.selected<0||state.selected===army.tile||army.path?.length>0;
+ const recall=$('simRecall');recall.disabled=!army||!!army.path?.length;recall.textContent=army?.recalling?'Отряд возвращается домой…':'Отозвать отряд';
  const sel=state.selected>=0?tiles[state.selected]:null;const develop=$('simDevelop');develop.disabled=!sel||!sel.classList.contains('city')||tileOwner(sel)!=='player'||state.development.some(x=>x.tile===state.selected);
  const activeSiege=sel&&state.sieges.find(x=>x.tile===state.selected);$('simSelection').textContent=sel?'Цель: '+tileName(sel,state.selected)+' · '+terrainNames[tileTerrain(sel)]+' · '+(activeSiege?'ОСАДА '+Math.min(3,Math.floor(activeSiege.progress))+'/3':tileOwner(sel)==='rival'?'вражеская территория':tileOwner(sel)==='player'?'ваша территория':'нейтральная область'):'Выберите область на карте, чтобы проложить маршрут.';
  renderLog();renderEconomy();renderArmyPanel();
@@ -109,7 +110,7 @@ function renderUI(){
 function renderArmyPanel(){
  const total=state.army?state.army.troops:Math.max(0,Math.min(60,troopCount()));
  const units=state.army?normalizeComposition(state.army.units,total,state.formation):makeComposition(total,state.formation);
- const description=state.army?'Состав действующего полевого отряда. Тактику можно изменить после его возвращения.':FORMATIONS[state.formation].description;
+ const description=state.army?.recalling?'Отряд возвращается к столице. После прибытия можно будет выбрать новую тактику.':state.army?'Состав действующего полевого отряда. Тактику можно изменить после его возвращения.':FORMATIONS[state.formation].description;
  const desc=$('simFormationDescription'),count=$('simFormationTotal'),cards=$('simRosterCards'),summary=$('simRosterSummary');
  if(desc)desc.textContent=description;if(count)count.textContent=total+' бойцов';
  document.querySelectorAll('[data-formation]').forEach(b=>{b.classList.toggle('active',b.dataset.formation===state.formation);b.disabled=!!state.army;});
@@ -126,7 +127,7 @@ function selectTile(tile){
  const i=tiles.indexOf(tile);if(i<0)return;state.selected=i;tiles.forEach(t=>t.classList.toggle('sim-target',t===tile));renderUI();save();
 }
 function march(){
- if(!state.army||state.selected<0||state.army.path?.length)return;
+ if(!state.army||state.army.recalling||state.selected<0||state.army.path?.length)return;
  const path=route(state.army.tile,state.selected);
  if(!path){log('Маршрут перекрыт водой или недоступным участком.');return;}
  if(!path.length)return;
@@ -151,7 +152,12 @@ function battle(army,target){
  const cavalryShare=units.cavalry/Math.max(1,army.troops),archerShare=units.archers/Math.max(1,army.troops),spearShare=units.spearmen/Math.max(1,army.troops);
  const terrainTactics=terrain==='terrain-plains'?1+cavalryShare*.17:terrain==='terrain-forest'?1+archerShare*.12-cavalryShare*.2:terrain==='terrain-mountain'?1+archerShare*.06-cavalryShare*.25:1+spearShare*.08;
  const attack=unitPower*(.55+state.morale/200)*weatherMod*terrainTactics,defensePower=defense*terrainDefense;
- if(owner==='player'){army.lastSafeTile=null;log('Отряд прибыл в дружественную область.');return;}
+ if(owner==='player'){
+   army.lastSafeTile=null;
+   if(army.recalling){const returned=army.troops;state.army=null;log('Отряд вернулся в столицу. В строю осталось '+returned+' бойцов; теперь можно выбрать новую тактику.');}
+   else log('Отряд прибыл в дружественную область.');
+   return;
+ }
  const losses=Math.min(army.troops,Math.max(1,Math.round(defensePower*.22+army.troops*.07)));
  applyLosses(army,losses);state.morale=Math.max(0,state.morale-(owner==='rival'?13:5));
  if(attack>defensePower&&army.troops>0){
@@ -205,12 +211,21 @@ function economyTick(){const lands=Math.max(1,Number((($('landLabel')?.textConte
 }
 function developCity(){const i=state.selected,t=tiles[i];if(!t||!t.classList.contains('city')||tileOwner(t)!=='player'||state.development.some(x=>x.tile===i))return;if(state.supply<15){log('Недостаточно запасов для городских работ.');return;}state.supply-=15;state.development.push({tile:i,remaining:3});log((state.cityDamage[i]?'Начато восстановление разрушенного города «':'Начато развитие поселения «')+tileName(t,i)+'». Завершение через 3 сезона.');renderUI();save();}
 function chooseFormation(value){if(state.army||!FORMATIONS[value])return;state.formation=value;log('Тактика подготовки изменена: '+FORMATIONS[value].name+'.');renderUI();save();}
+function recallArmy(){
+ const army=state.army;if(!army||army.path?.length)return;
+ const home=Number.isInteger(army.homeTile)&&tileOwner(tiles[army.homeTile])==='player'?army.homeTile:tiles.findIndex(t=>tileOwner(t)==='player');
+ if(home<0){log('Невозможно отозвать войско: столица и дружественные земли потеряны.');return;}
+ if(home===army.tile){const returned=army.troops;state.army=null;state.sieges=state.sieges.filter(x=>x.tile!==home);syncTiles();log('Полевой отряд распущен у столицы. В строю осталось '+returned+' бойцов.');renderUI();save();return;}
+ const path=route(army.tile,home);if(!path){log('Маршрут домой перекрыт водой. Выберите ближайшую дружественную область.');return;}
+ state.sieges=state.sieges.filter(x=>x.tile!==army.tile);syncTiles();army.path=path;army.progress=0;army.target=home;army.recalling=true;
+ log('Отряд отступает к столице. После возвращения его можно будет сформировать заново.');renderUI();save();
+}
 function train(){state.morale=Math.min(100,state.morale+12);state.supply=Math.max(0,state.supply-3);log('Войско провело учения. Боевой дух повышен, запасы немного уменьшились.');renderUI();save();}
 function createArmy(){
  if(state.army){log('Полевой отряд уже находится на карте.');return;}
  const home=tiles.findIndex(t=>tileOwner(t)==='player');if(home<0)return;
  const troops=Math.max(1,Math.min(60,troopCount())),units=makeComposition(troops,state.formation);
- state.army={tile:home,troops,units,path:[],progress:0,target:home,lastSafeTile:null};
+ state.army={tile:home,homeTile:home,troops,units,path:[],progress:0,target:home,lastSafeTile:null,recalling:false};
  log('Сформирован отряд «'+FORMATIONS[state.formation].name+'»: '+troops+' бойцов. Пехота '+units.infantry+', копейщики '+units.spearmen+', лучники '+units.archers+', кавалерия '+units.cavalry+'.');renderUI();save();
 }
 function animate(time){
@@ -256,7 +271,7 @@ $('simMarch').addEventListener('click',march);
 $('simTrain').addEventListener('click',train);$('simDevelop').addEventListener('click',developCity);
 $('simTurn').addEventListener('click',advanceSeason);document.querySelectorAll('[data-tax]').forEach(b=>b.addEventListener('click',()=>setTax(b.dataset.tax)));$('simTrade').addEventListener('click',trade);$('simGranary').addEventListener('click',buildGranary);
 const simPanel=$('worldSim');
-const armyBtn=document.createElement('button');armyBtn.className='btn';armyBtn.id='simRaise';armyBtn.textContent='Сформировать отряд';$('simTrain').before(armyBtn);armyBtn.addEventListener('click',createArmy);
+const armyBtn=document.createElement('button');armyBtn.className='btn';armyBtn.id='simRaise';armyBtn.textContent='Сформировать отряд';$('simTrain').before(armyBtn);armyBtn.addEventListener('click',createArmy);$('simRecall').addEventListener('click',recallArmy);
 document.querySelectorAll('[data-formation]').forEach(b=>b.addEventListener('click',()=>chooseFormation(b.dataset.formation)));
 const observer=new MutationObserver(()=>{syncTiles();renderUI();});observer.observe(grid,{childList:true,subtree:true,attributes:true,attributeFilter:['class']});let lastCoreTurn=$('turnLabel')?.textContent||'';if($('turnLabel'))new MutationObserver(()=>{const now=$('turnLabel').textContent;if(now!==lastCoreTurn){lastCoreTurn=now;economyTick();renderUI();save();}}).observe($('turnLabel'),{childList:true,subtree:true,characterData:true});
 window.addEventListener('resize',updatePoints,{passive:true});
