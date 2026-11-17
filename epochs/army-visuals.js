@@ -35,7 +35,7 @@
    const gait=Math.sin(step),lift=Math.max(0,gait)*.8,frame=(team==='rival'?2:0)+(unitType%2);
    ctx.save();ctx.translate(x,y-lift);ctx.rotate(angle);ctx.globalAlpha=1;
    ctx.fillStyle='rgba(0,0,0,.38)';ctx.beginPath();ctx.ellipse(0,4,5.5,2.1,0,0,Math.PI*2);ctx.fill();
-   ctx.drawImage(unitAtlas,frame*64,0,64,80,-10,-17,20,25);
+   ctx.drawImage(unitAtlas,frame*64,Math.abs(step)>.01?80:0,64,80,-10,-17,20,25);
    ctx.restore();return;
   }
   const gait=Math.sin(step),lift=Math.max(0,gait)*.8;
